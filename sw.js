@@ -1,25 +1,25 @@
 const CACHE_NAME = 'gpx-track-v1';
 const ASSETS_TO_CACHE = [
-    './',
-    './index.php',
-    './manifest.json',
-    './icon-192.png',
-    './icon-512.png',
+    '/',
+    '/index.php',
+    '/app.js',
+    '/manifest.json',
     'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
     'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
-    'https://unpkg.com/@tmcw/togeojson@5.8.1/dist/togeojson.umd.js'
+    'https://cdn.jsdelivr.net/npm/@mapbox/togeojson@0.16.0/togeojson.min.js'
 ];
 
-// Install service worker and cache assets
+// Install event - cache assets
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
-            .then((cache) => cache.addAll(ASSETS_TO_CACHE))
+            .then((cache) => {
+                return cache.addAll(ASSETS_TO_CACHE);
+            })
     );
-    self.skipWaiting();
 });
 
-// Activate and clean up old caches
+// Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys().then((cacheNames) => {
@@ -32,47 +32,30 @@ self.addEventListener('activate', (event) => {
             );
         })
     );
-    self.clients.claim();
 });
 
-// Serve cached content when offline
+// Fetch event - serve from cache, fallback to network
 self.addEventListener('fetch', (event) => {
-    // Skip cross-origin requests
-    if (!event.request.url.startsWith(self.location.origin) && 
-        !event.request.url.startsWith('https://unpkg.com/')) {
-        return;
-    }
-
     event.respondWith(
         caches.match(event.request)
             .then((response) => {
-                if (response) {
-                    return response; // Return cached version
-                }
-                return fetch(event.request)
+                // Return cached version or fetch from network
+                return response || fetch(event.request)
                     .then((response) => {
-                        // Check if we received a valid response
-                        if (!response || response.status !== 200 || response.type !== 'basic') {
-                            return response;
+                        // Cache new successful responses
+                        if (response && response.status === 200) {
+                            const responseClone = response.clone();
+                            caches.open(CACHE_NAME)
+                                .then((cache) => {
+                                    cache.put(event.request, responseClone);
+                                });
                         }
-
-                        // Clone the response as it can only be consumed once
-                        const responseToCache = response.clone();
-
-                        caches.open(CACHE_NAME)
-                            .then((cache) => {
-                                cache.put(event.request, responseToCache);
-                            });
-
                         return response;
-                    })
-                    .catch(() => {
-                        // Return a fallback response if offline and no cache
-                        if (event.request.url.includes('tile.openstreetmap.org')) {
-                            // Return empty tile for map requests
-                            return new Response();
-                        }
                     });
+            })
+            .catch(() => {
+                // Fallback for offline
+                return new Response('You are offline. Please check your connection.');
             })
     );
 });
