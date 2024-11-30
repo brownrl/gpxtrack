@@ -52,8 +52,8 @@ header("Pragma: no-cache");
     <script src="https://cdn.jsdelivr.net/npm/@mapbox/togeojson@0.16.0/togeojson.min.js"></script>
 
     <!-- App JavaScript -->
-    <script src="app.js"></script>
-
+    <script type="module" src="app.js"></script>
+    
     <!-- Service Worker Registration -->
     <script>
         if ('serviceWorker' in navigator) {

@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<gpx version="1.1" creator="Simulation" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+  <metadata>
+    <name>Simulated Walk</name>
+  </metadata>
+  <trk>
+    <name>Simulated Walk</name>
+    <trkseg>
+      <trkpt lat="50.945944" lon="4.822911">
+        <ele>19.938790</ele>
+        <time>2024-11-10T18:26:16.683Z</time>
+      </trkpt>
+      <trkpt lat="50.945831" lon="4.822171">
+        <ele>19.938790</ele>
+        <time>2024-11-10T18:27:16.683Z</time>
+      </trkpt>
+      <trkpt lat="50.945618" lon="4.821650">
+        <ele>19.938790</ele>
+        <time>2024-11-10T18:28:16.683Z</time>
+      </trkpt>
+      <trkpt lat="50.945547" lon="4.821563">
+        <ele>19.943630</ele>
+        <time>2024-11-10T18:29:16.683Z</time>
+      </trkpt>
+      <trkpt lat="50.945391" lon="4.821394">
+        <ele>19.958515</ele>
+        <time>2024-11-10T18:30:16.683Z</time>
+      </trkpt>
+    </trkseg>
+  </trk>
+</gpx>

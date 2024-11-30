@@ -4,6 +4,7 @@ const trackManager = {
     trackLine: null,
     startMarker: null,
     endMarker: null,
+    wakeLock: null,
 
     // Initialize track handling
     initTrackHandling: function(map, startIcon, endIcon) {
@@ -11,7 +12,7 @@ const trackManager = {
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
-                reader.onload = (e) => {
+                reader.onload = async (e) => {
                     this.clearTrack(map);
 
                     // Parse GPX
@@ -38,12 +39,26 @@ const trackManager = {
 
                             // Show clear button
                             document.querySelector('.clear-button').style.display = 'inline-block';
+
+                            // Request wake lock
+                            await this.requestWakeLock();
                         }
                     }
                 };
                 reader.readAsText(file);
             }
         });
+    },
+
+    // Function to request a wake lock
+    requestWakeLock: async function() {
+        try {
+            this.wakeLock = await navigator.wakeLock.request('screen');
+            this.wakeLock.addEventListener('release', () => {
+            });
+        } catch (err) {
+            console.error(`${err.name}, ${err.message}`);
+        }
     },
 
     // Function to clear the track

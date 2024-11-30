@@ -13,22 +13,22 @@ locationTracker.initLocationTracking(map);
 const startIcon = L.divIcon({
     html: '🟢',  // Green circle for start
     className: 'custom-icon start-icon',
-    iconSize: [30, 30],
-    iconAnchor: [15, 15]
+    iconSize: [20, 20],
+    iconAnchor: [10, 10]
 });
 
 const endIcon = L.divIcon({
     html: '🔴',  // Red circle for end
     className: 'custom-icon end-icon',
-    iconSize: [30, 30],
-    iconAnchor: [15, 15]
+    iconSize: [20, 20],
+    iconAnchor: [10, 10]
 });
 
 // Initialize track handling
 trackManager.initTrackHandling(map, startIcon, endIcon);
 
-// Initialize UI controls
-uiControls.initUIControls();
+// Initialize UI controls with map
+uiControls.initUIControls(map);
 
-// Override UI control clearTrack with trackManager's clearTrack
+// Ensure map is passed correctly to clearTrack
 uiControls.clearTrack = () => trackManager.clearTrack(map);
