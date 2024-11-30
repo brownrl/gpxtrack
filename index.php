@@ -32,44 +32,8 @@ header("Pragma: no-cache");
      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
      crossorigin=""/>
     
-    <style>
-        #map {
-            height: 100vh;
-            width: 100%;
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
-        body {
-            margin: 0;
-            padding: 0;
-        }
-        .file-picker-container {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1000;
-            display: flex;
-            gap: 10px;
-        }
-        .file-picker-button, .clear-button {
-            background-color: rgba(255, 255, 255, 0.9);
-            border: none;
-            padding: 10px 20px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 16px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-        .clear-button {
-            background-color: rgba(255, 80, 80, 0.9);
-            color: white;
-        }
-        #gpx-file {
-            display: none;
-        }
-    </style>
+    <!-- App CSS -->
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div id="map"></div>
