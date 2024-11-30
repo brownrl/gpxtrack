@@ -3,7 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpenStreetMap Display</title>
+    <title>GPX Track Follower</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="GPX Track">
+    <link rel="manifest" href="manifest.json">
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -46,6 +53,11 @@
             font-family: monospace;
             display: none;  /* Hidden by default */
             text-align: center;
+            white-space: nowrap;
+        }
+        .status-panel > div {
+            display: inline-block;
+            margin: 0 10px;
         }
         .file-picker-button, .clear-button {
             background-color: rgba(255, 255, 255, 0.9);
@@ -69,7 +81,7 @@
     <div id="map"></div>
     <div class="status-panel" id="status-panel">
         <div id="time">--:--</div>
-        <div id="distance">-- km remaining</div>
+        <div id="distance">-- km</div>
     </div>
     <div class="file-picker-container">
         <input type="file" id="gpx-file" accept=".gpx">
@@ -90,6 +102,19 @@
     <script src="https://unpkg.com/@tmcw/togeojson@5.8.1/dist/togeojson.umd.js"></script>
 
     <script>
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful');
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+
         // Initialize the map with a default view (will be updated when we get location)
         var map = L.map('map', {
             zoomControl: false,  // Disable zoom controls
@@ -109,7 +134,38 @@
         var recentPositions = [];
         var trackPoints = [];  // Store track points for distance calculation
         var totalTrackDistance = 0;
+        var wakeLock = null;  // Store wake lock
         const POSITION_HISTORY = 3; // Number of positions to keep for calculating heading
+
+        // Function to acquire wake lock
+        async function acquireWakeLock() {
+            try {
+                wakeLock = await navigator.wakeLock.request('screen');
+                console.log('Wake Lock is active');
+            } catch (err) {
+                console.log(`${err.name}, ${err.message}`);
+            }
+        }
+
+        // Function to release wake lock
+        async function releaseWakeLock() {
+            if (wakeLock !== null) {
+                try {
+                    await wakeLock.release();
+                    wakeLock = null;
+                    console.log('Wake Lock is released');
+                } catch (err) {
+                    console.log(`${err.name}, ${err.message}`);
+                }
+            }
+        }
+
+        // Handle visibility change
+        document.addEventListener('visibilitychange', async () => {
+            if (wakeLock !== null && document.visibilityState === 'visible') {
+                await acquireWakeLock();
+            }
+        });
 
         // Function to calculate bearing between two points
         function calculateBearing(start, end) {
@@ -196,7 +252,11 @@
         function updateTime() {
             const now = new Date();
             document.getElementById('time').textContent = 
-                now.toLocaleTimeString('en-US', { hour12: false });
+                now.toLocaleTimeString('en-US', { 
+                    hour12: false,
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
         }
         setInterval(updateTime, 1000);
 
@@ -261,7 +321,7 @@
                 if (closest) {
                     const remaining = calculateRemainingDistance(closest.index);
                     document.getElementById('distance').textContent = 
-                        (remaining / 1000).toFixed(1) + ' km remaining';
+                        (remaining / 1000).toFixed(1) + ' km';
                 }
             }
 
@@ -330,13 +390,16 @@
                             // Show status panel
                             document.getElementById('status-panel').style.display = 'block';
 
+                            // Acquire wake lock to keep screen on
+                            acquireWakeLock();
+
                             // Calculate initial remaining distance
                             if (locationCircle) {
                                 const closest = findClosestPointOnTrack(locationCircle.getLatLng());
                                 if (closest) {
                                     const remaining = calculateRemainingDistance(closest.index);
                                     document.getElementById('distance').textContent = 
-                                        (remaining / 1000).toFixed(1) + ' km remaining';
+                                        (remaining / 1000).toFixed(1) + ' km';
                                 }
                             }
 
@@ -376,6 +439,9 @@
             // Clear track points and hide status panel
             trackPoints = [];
             document.getElementById('status-panel').style.display = 'none';
+            
+            // Release wake lock
+            releaseWakeLock();
             
             // Return to user location
             if (locationCircle) {
