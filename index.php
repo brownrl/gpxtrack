@@ -9,14 +9,14 @@ header("Pragma: no-cache");
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GPX Track Follower</title>
+    <title>GPX</title>
 
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#000000">
     <meta name="description" content="A PWA for following GPX tracks and tracking location">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta name="apple-mobile-web-app-title" content="GPX Track">
+    <meta name="apple-mobile-web-app-title" content="GPX">
     
     <!-- PWA Icons -->
     <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192x192.png">

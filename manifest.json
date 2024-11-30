@@ -1,6 +1,6 @@
 {
-    "name": "GPX Track Follower",
-    "short_name": "GPX Track",
+    "name": "GPX",
+    "short_name": "GPX",
     "description": "A PWA for following GPX tracks and tracking location",
     "start_url": "/",
     "display": "standalone",
