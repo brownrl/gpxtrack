@@ -13,14 +13,14 @@ body {
 
 .file-picker-container {
     position: fixed;
-    top: 20px;
-    right: 20px;
+    bottom: 20px;
+    left: 20px;
     z-index: 1000;
     display: flex;
     gap: 10px;
 }
 
-.file-picker-button, .clear-button {
+.file-picker-button, .clear-button, .toggle-map-button {
     background-color: rgba(255, 255, 255, 0.9);
     border: none;
     padding: 10px 20px;

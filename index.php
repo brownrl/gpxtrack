@@ -38,6 +38,7 @@ header("Pragma: no-cache");
 <body>
     <div id="map"></div>
     <div class="file-picker-container">
+        <button class="toggle-map-button">MAP</button>
         <button class="file-picker-button">GPX</button>
         <input type="file" id="gpx-file" accept=".gpx" style="display: none;">
         <button class="clear-button" style="display: none">Clear</button>

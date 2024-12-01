@@ -1,30 +1,38 @@
 // Location tracking functionality
+
+// Default properties for location markers
+const markerRadius = 5;
+const markerColor = '#3388ff';
+const markerFillColor = '#3388ff';
+const markerFillOpacity = 1;
+
+// Removed map dependency from locationTracker
 const locationTracker = {
+    paused: false,
+    zoomLevel: 18,
+    locationCircle: null,
+
     initLocationTracking: function(map) {
-        // Start watching location
-        map.on('locationfound', this.onLocationFound.bind(this, map));
-        map.on('locationerror', this.onLocationError);
-        map.locate({
-            watch: true,
-            enableHighAccuracy: true,
-            timeout: 10000
-        });
+        this.unpause(map);
     },
 
-    onLocationFound: function(map, e) {
+    onLocationFound: function(e, map) {
+        if (!map || typeof map.addLayer !== 'function') {
+            return;
+        }
+
         if (this.locationCircle) {
             map.removeLayer(this.locationCircle);
         }
 
         this.locationCircle = L.circle(e.latlng, {
-            radius: 5,
-            color: '#3388ff',
-            fillColor: '#3388ff',
-            fillOpacity: 1
+            radius: markerRadius,
+            color: markerColor,
+            fillColor: markerFillColor,
+            fillOpacity: markerFillOpacity
         }).addTo(map);
 
-        // Always center map on location with animation
-        map.setView(e.latlng, 18, {
+        map.setView(e.latlng, this.zoomLevel, {
             animate: true,
             duration: 0.5
         });
@@ -34,7 +42,26 @@ const locationTracker = {
         alert(e.message);
     },
 
-    locationCircle: null
+    pause: function(map) {
+        this.paused = true;
+        map.off('locationfound', this.onLocationFound);
+        map.off('locationerror', this.onLocationError);
+        map.stopLocate();
+    },
+
+    unpause: function(map) {
+        this.paused = false;
+        if (!map || typeof map.on !== 'function') {
+            return;
+        }
+        map.on('locationfound', (e) => this.onLocationFound(e, map));
+        map.on('locationerror', this.onLocationError);
+        map.locate({
+            watch: true,
+            enableHighAccuracy: true,
+            timeout: 10000
+        });
+    }
 };
 
 export default locationTracker;

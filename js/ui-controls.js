@@ -1,4 +1,5 @@
 import trackManager from './track-manager.js';
+import mapConfig from './map-config.js';
 
 // UI controls and event listeners
 const uiControls = {
@@ -10,11 +11,21 @@ const uiControls = {
 
         // Ensure clear button works by correctly referencing trackManager's clearTrack
         const clearButton = document.querySelector('.clear-button');
-        clearButton.addEventListener('click', () => trackManager.clearTrack(map));
-    },
+        if (clearButton) {
+            console.log('Clear button found, attaching event listener');
+            clearButton.addEventListener('click', () => {
+                console.log('Clear button clicked');
+                trackManager.clearTrack(map);
+            });
+        } else {
+            console.error('Clear button not found in the DOM');
+        }
 
-    clearTrack: function() {
-        // This function will be overridden by trackManager's clearTrack
+        // Attach event listener to existing toggle map button
+        const toggleMapButton = document.querySelector('.toggle-map-button');
+        toggleMapButton.addEventListener('click', function() {
+            mapConfig.toggleTileLayer(map);
+        });
     }
 };
 
