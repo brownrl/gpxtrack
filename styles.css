@@ -38,3 +38,12 @@ body {
 #gpx-file {
     display: none;
 }
+
+#progress-display {
+    font-family: Arial, sans-serif;
+}
+
+#progress-display span {
+    color: white;
+    font-weight: bold;
+}
