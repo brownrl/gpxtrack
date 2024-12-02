@@ -1,3 +1,5 @@
+import { createChevronIcon } from './chevron-utils.js';
+
 // Location tracking functionality
 
 // Default properties for location markers
@@ -5,30 +7,6 @@ const markerRadius = 5;
 const markerColor = '#808080'; // Grey color
 const markerFillColor = '#808080';
 const markerFillOpacity = 1;
-
-// Create chevron icon for heading
-function createHeadingChevron(heading) {
-    return L.divIcon({
-        html: `<div style="
-            transform: rotate(${heading}deg);
-            font-size: 36px;
-            line-height: 0;
-            color: white;
-            font-weight: bold;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-left: 3px;
-            margin-top: 3px;
-            font-family: Arial, sans-serif;
-        ">›</div>`,
-        className: 'heading-chevron',
-        iconSize: [40, 40],
-        iconAnchor: [20, 20]
-    });
-}
 
 // Removed map dependency from locationTracker
 const locationTracker = {
@@ -66,27 +44,7 @@ const locationTracker = {
     },
 
     initLocationTracking: function(map) {
-        if (!map || typeof map.on !== 'function') {
-            return;
-        }
-        
-        // Request permissions for device orientation
         this.requestPermissions();
-
-        // Reset state
-        this.paused = true;
-        this.currentHeading = null;
-        
-        if (this.locationCircle) {
-            map.removeLayer(this.locationCircle);
-            this.locationCircle = null;
-        }
-        if (this.headingMarker) {
-            map.removeLayer(this.headingMarker);
-            this.headingMarker = null;
-        }
-
-        // Start tracking
         this.unpause(map);
     },
 
@@ -114,7 +72,7 @@ const locationTracker = {
         // Add heading chevron if heading is available
         if (this.currentHeading !== null) {
             this.headingMarker = L.marker(e.latlng, {
-                icon: createHeadingChevron(this.currentHeading),
+                icon: createChevronIcon(this.currentHeading),
                 zIndexOffset: 1000  // Ensure chevron appears above circle
             }).addTo(map);
         }

@@ -1,4 +1,5 @@
 import locationTracker from './location-tracker.js';
+import { createChevronIcon } from './chevron-utils.js';
 
 // Track management functionality
 const trackManager = {
@@ -36,29 +37,6 @@ const trackManager = {
         
         // Add 270 degrees (90 + 180) to flip the chevron and account for its default right orientation
         return ((Math.atan2(y, x) * 180 / Math.PI) + 270) % 360;
-    },
-
-    // Create chevron icon
-    createChevronIcon: function(bearing) {
-        return L.divIcon({
-            html: `<div style="
-                transform: rotate(${bearing}deg);
-                font-size: 24px;
-                line-height: 24px;
-                color: white;
-                font-weight: bold;
-                width: 24px;
-                height: 24px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                transform-origin: center center;
-                font-family: Arial, sans-serif;
-            ">›</div>`,
-            className: 'chevron-icon',
-            iconSize: [24, 24],
-            iconAnchor: [12, 12]
-        });
     },
 
     // Initialize track handling
@@ -105,7 +83,7 @@ const trackManager = {
                                         this.trackPoints[i + 1]
                                     );
                                     const marker = L.marker(this.trackPoints[i], {
-                                        icon: this.createChevronIcon(bearing),
+                                        icon: createChevronIcon(bearing),
                                         zIndexOffset: 1000
                                     }).addTo(map);
                                     this.directionMarkers.push(marker);
