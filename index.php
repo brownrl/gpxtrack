@@ -1,8 +1,6 @@
 <?php
-// Prevent caching during development
-header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
-header("Cache-Control: post-check=0, pre-check=0", false);
-header("Pragma: no-cache");
+// Basic headers for PWA
+header("Cache-Control: no-store, private");
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -53,7 +51,11 @@ header("Pragma: no-cache");
     <script src="https://cdn.jsdelivr.net/npm/@mapbox/togeojson@0.16.0/togeojson.min.js"></script>
 
     <!-- App JavaScript -->
-    <script type="module" src="app.js"></script>
+    <script src="js/map-config.js"></script>
+    <script src="js/track-manager.js"></script>
+    <script src="js/location-tracker.js"></script>
+    <script src="js/ui-controls.js"></script>
+    <script src="app.js"></script>
     
     <!-- Service Worker Registration -->
     <script>
