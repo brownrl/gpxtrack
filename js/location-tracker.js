@@ -213,4 +213,14 @@ const locationTracker = {
     }
 };
 
+function checkPWAStatus() {
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    const pwaWarning = document.getElementById('pwa-warning');
+    if (!isPWA && pwaWarning) {
+        pwaWarning.style.display = 'block';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', checkPWAStatus);
+
 export default locationTracker;

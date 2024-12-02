@@ -48,3 +48,23 @@ body {
     color: white;
     font-weight: bold;
 }
+
+@keyframes pulsate {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+
+#pwa-warning {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background-color: red;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    display: none;
+    z-index: 1000;
+    font-size: 14px;
+    animation: pulsate 3s infinite;
+}

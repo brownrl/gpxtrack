@@ -36,6 +36,7 @@ header("Cache-Control: no-store, private");
 <body>
     <div id="map"></div>
     <div id="progress-display" style="position: absolute; top: 10px; right: 10px; display: none; z-index: 1000; font-size: 16px; font-family: Arial, sans-serif;">&nbsp;</div>
+    <div id="pwa-warning" style="position: absolute; top: 10px; left: 10px; background-color: red; color: white; padding: 5px 10px; border-radius: 5px; display: none; z-index: 1000; font-size: 14px; animation: pulsate 1s infinite;">Add to Home Screen for better experience</div>
     <div class="file-picker-container">
         <button class="toggle-map-button">MAP</button>
         <button class="file-picker-button">GPX</button>
