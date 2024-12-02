@@ -161,7 +161,15 @@ const trackManager = {
             this.wakeLock.release();
             this.wakeLock = null;
         }
-    }
+    },
+
+    // Ensure chevron is created even if heading is 0 degrees
+    createChevronMarker: function(map, position, heading) {
+        const chevron = createChevronIcon(heading || 0); // Default to 0 degrees if heading is not provided
+        chevron.setLatLng(position);
+        chevron.addTo(map);
+        this.directionMarkers.push(chevron);
+    },
 };
 
 export default trackManager;

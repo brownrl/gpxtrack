@@ -15,6 +15,8 @@ const locationTracker = {
     locationCircle: null,
     headingMarker: null,
     currentHeading: null,
+    previousLocation: null,
+    movementTolerance: 5, // meters
 
     requestPermissions: async function() {
         if (typeof DeviceOrientationEvent !== 'undefined' && 
@@ -35,23 +37,41 @@ const locationTracker = {
 
     handleOrientation: function(event) {
         if (event.webkitCompassHeading) {
-            // For iOS devices
             this.currentHeading = event.webkitCompassHeading;
         } else if (event.alpha !== null) {
-            // For Android devices
             this.currentHeading = 360 - event.alpha;
+        } else {
+            this.currentHeading = 0; // Default to 0 degrees (North) if heading cannot be determined
         }
     },
 
     initLocationTracking: function(map) {
-        this.requestPermissions();
         this.unpause(map);
+
+        // Add initial heading chevron
+        if (!this.headingMarker) {
+            this.headingMarker = L.marker([0, 0], {
+                icon: createChevronIcon(0), // Default chevron pointing North
+                zIndexOffset: 1000  // Ensure chevron appears above circle
+            }).addTo(map);
+        }
     },
 
     onLocationFound: function(e, map) {
         if (!map || typeof map.addLayer !== 'function') {
             return;
         }
+
+        // Calculate bearing if previous location exists
+        if (this.previousLocation) {
+            const distance = map.distance(this.previousLocation, e.latlng);
+            if (distance > this.movementTolerance) {
+                this.currentHeading = this.calculateBearing(this.previousLocation, e.latlng);
+            }
+        }
+
+        // Update previous location
+        this.previousLocation = e.latlng;
 
         // Remove previous markers
         if (this.locationCircle) {
@@ -69,18 +89,40 @@ const locationTracker = {
             fillOpacity: markerFillOpacity
         }).addTo(map);
 
-        // Add heading chevron if heading is available
-        if (this.currentHeading !== null) {
-            this.headingMarker = L.marker(e.latlng, {
-                icon: createChevronIcon(this.currentHeading),
-                zIndexOffset: 1000  // Ensure chevron appears above circle
-            }).addTo(map);
-        }
+        // Add heading chevron
+        this.updateHeadingMarker(map, e.latlng);
 
         // Center map on position if we're tracking
         if (!this.paused) {
             map.setView(e.latlng, this.zoomLevel);
         }
+    },
+
+    updateHeadingMarker: function(map, position) {
+        if (!this.headingMarker) {
+            this.headingMarker = L.marker(position, {
+                icon: createChevronIcon(this.currentHeading || 0), // Use currentHeading or default to 0
+                zIndexOffset: 1000  // Ensure chevron appears above circle
+            });
+        } else {
+            this.headingMarker.setIcon(createChevronIcon(this.currentHeading || 0));
+            this.headingMarker.setLatLng(position);
+        }
+        this.headingMarker.addTo(map);
+    },
+
+    calculateBearing: function(start, end) {
+        const startLat = start.lat * Math.PI / 180;
+        const startLng = start.lng * Math.PI / 180;
+        const endLat = end.lat * Math.PI / 180;
+        const endLng = end.lng * Math.PI / 180;
+
+        const y = Math.sin(endLng - startLng) * Math.cos(endLat);
+        const x = Math.cos(startLat) * Math.sin(endLat) -
+                 Math.sin(startLat) * Math.cos(endLat) * Math.cos(endLng - startLng);
+        
+        // Add 270 degrees (90 + 180) to flip the chevron and account for its default right orientation
+        return ((Math.atan2(y, x) * 180 / Math.PI) + 270) % 360;
     },
 
     onLocationError: function(e) {
