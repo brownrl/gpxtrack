@@ -15,7 +15,7 @@ const locationTracker = {
     locationCircle: null,
     headingMarker: null,
     currentHeading: null,
-    previousLocation: null,
+    previousLocations: [], // Store the last three locations
     movementTolerance: 1, // meters
 
     requestPermissions: async function() {
@@ -62,16 +62,20 @@ const locationTracker = {
             return;
         }
 
-        // Calculate bearing if previous location exists
-        if (this.previousLocation) {
-            const distance = map.distance(this.previousLocation, e.latlng);
-            if (distance > this.movementTolerance) {
-                this.currentHeading = this.calculateBearing(this.previousLocation, e.latlng);
-            }
+        // Add new location to the list
+        this.previousLocations.push(e.latlng);
+        if (this.previousLocations.length > 3) {
+            this.previousLocations.shift(); // Keep only the last three points
         }
 
-        // Update previous location
-        this.previousLocation = e.latlng;
+        // Calculate average bearing if we have at least two previous points
+        if (this.previousLocations.length >= 2) {
+            let totalBearing = 0;
+            for (let i = 0; i < this.previousLocations.length - 1; i++) {
+                totalBearing += this.calculateBearing(this.previousLocations[i], this.previousLocations[i + 1]);
+            }
+            this.currentHeading = totalBearing / (this.previousLocations.length - 1);
+        }
 
         // Remove previous markers
         if (this.locationCircle) {

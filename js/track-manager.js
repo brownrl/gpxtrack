@@ -23,6 +23,7 @@ const trackManager = {
     startMarker: null,
     endMarker: null,
     wakeLock: null,
+    wakeLockInterval: null, // Interval for re-requesting wake lock
 
     // Calculate bearing between two points
     calculateBearing: function(start, end) {
@@ -125,12 +126,33 @@ const trackManager = {
         });
     },
 
+    startWakeLockInterval: function() {
+        if (this.wakeLockInterval) {
+            clearInterval(this.wakeLockInterval);
+        }
+        this.wakeLockInterval = setInterval(() => {
+            this.requestWakeLock();
+        }, 60000); // Re-request every 60 seconds
+    },
+
+    stopWakeLockInterval: function() {
+        if (this.wakeLockInterval) {
+            clearInterval(this.wakeLockInterval);
+            this.wakeLockInterval = null;
+        }
+    },
+
     // Function to request a wake lock
     requestWakeLock: async function() {
         try {
             this.wakeLock = await navigator.wakeLock.request('screen');
-            this.wakeLock.addEventListener('release', () => {});
-        } catch (err) {}
+            this.wakeLock.addEventListener('release', () => {
+                this.startWakeLockInterval(); // Restart interval if wake lock is released
+            });
+            this.startWakeLockInterval(); // Start interval when wake lock is acquired
+        } catch (err) {
+            console.error('Failed to acquire wake lock:', err);
+        }
     },
 
     // Function to clear the track
@@ -153,14 +175,17 @@ const trackManager = {
             this.endMarker = null;
         }
 
-        // Hide clear button
-        document.querySelector('.clear-button').style.display = 'none';
-
-        // Release wake lock
+        // Stop the wake lock interval when clearing the track
+        this.stopWakeLockInterval();
         if (this.wakeLock) {
             this.wakeLock.release();
             this.wakeLock = null;
         }
+
+        // Hide clear button
+        document.querySelector('.clear-button').style.display = 'none';
+
+        // Release wake lock
     },
 
     // Ensure chevron is created even if heading is 0 degrees
