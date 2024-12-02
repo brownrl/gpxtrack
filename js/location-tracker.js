@@ -129,7 +129,7 @@ const locationTracker = {
         // Display progress
         const progressElement = document.getElementById('progress-display');
         if (progressElement) {
-            progressElement.textContent = `${(remainingDistance / 1000).toFixed(1)} / ${(totalDistance / 1000).toFixed(1)} km`;
+            progressElement.textContent = `${(remainingDistance / 1000).toFixed(1)} km`;
         }
     },
 

@@ -41,6 +41,7 @@ body {
 
 #progress-display {
     font-family: Arial, sans-serif;
+    color: #f0f0f0; /* Even lighter grey */
 }
 
 #progress-display span {

@@ -35,7 +35,7 @@ header("Cache-Control: no-store, private");
 </head>
 <body>
     <div id="map"></div>
-    <div id="progress-display" style="position: absolute; top: 10px; right: 10px; color: grey; padding: 5px; display: none; z-index: 1000; font-size: 16px; font-family: Arial, sans-serif;">0.0 / 0.0 km</div>
+    <div id="progress-display" style="position: absolute; top: 10px; right: 10px; display: none; z-index: 1000; font-size: 16px; font-family: Arial, sans-serif;">&nbsp;</div>
     <div class="file-picker-container">
         <button class="toggle-map-button">MAP</button>
         <button class="file-picker-button">GPX</button>
