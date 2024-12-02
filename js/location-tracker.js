@@ -3,7 +3,7 @@ import { createChevronIcon } from './chevron-utils.js';
 // Location tracking functionality
 
 // Default properties for location markers
-const markerRadius = 5;
+const markerRadius = 8; // Increased from 5
 const markerColor = '#808080'; // Grey color
 const markerFillColor = '#808080';
 const markerFillOpacity = 1;
@@ -16,7 +16,7 @@ const locationTracker = {
     headingMarker: null,
     currentHeading: null,
     previousLocation: null,
-    movementTolerance: 5, // meters
+    movementTolerance: 1, // meters
 
     requestPermissions: async function() {
         if (typeof DeviceOrientationEvent !== 'undefined' && 

@@ -6,7 +6,7 @@ const trackManager = {
     // Default properties for start and end markers
     startMarkerColor: '#00ff00', // Green
     endMarkerColor: '#ff0000', // Red
-    markerRadius: 5,
+    markerRadius: 8, // Increased from 5
     markerFillOpacity: 1,
 
     // Default properties for the track line and points
