@@ -1,4 +1,5 @@
 import { createChevronIcon } from './chevron-utils.js';
+import trackManager from './track-manager.js';
 
 // Location tracking functionality
 
@@ -96,9 +97,40 @@ const locationTracker = {
         // Add heading chevron
         this.updateHeadingMarker(map, e.latlng);
 
+        // Update progress
+        this.updateProgress(map);
+
         // Center map on position if we're tracking
         if (!this.paused) {
             map.setView(e.latlng, this.zoomLevel);
+        }
+    },
+
+    updateProgress: function(map) {
+        if (!trackManager.trackPoints || trackManager.trackPoints.length === 0) {
+            return;
+        }
+
+        // Find the closest track point to the current location
+        let closestIndex = 0;
+        let closestDistance = Infinity;
+        for (let i = 0; i < trackManager.trackPoints.length; i++) {
+            const distance = map.distance(this.previousLocations[this.previousLocations.length - 1], trackManager.trackPoints[i]);
+            if (distance < closestDistance) {
+                closestDistance = distance;
+                closestIndex = i;
+            }
+        }
+
+        // Calculate remaining distance
+        const totalDistance = trackManager.trackDistances[trackManager.trackDistances.length - 1];
+        const remainingDistance = totalDistance - trackManager.trackDistances[closestIndex];
+
+        // Display progress
+        const progressElement = document.getElementById('progress-display');
+        if (progressElement) {
+            progressElement.innerHTML = `<span style="color: white; font-weight: bold;">${(remainingDistance / 1000).toFixed(1)}</span> / ${(totalDistance / 1000).toFixed(1)} km`;
+            progressElement.style.display = 'block';
         }
     },
 

@@ -24,6 +24,7 @@ const trackManager = {
     endMarker: null,
     wakeLock: null,
     wakeLockInterval: null, // Interval for re-requesting wake lock
+    trackDistances: [], // Pre-calculated distances for each track point
 
     // Calculate bearing between two points
     calculateBearing: function(start, end) {
@@ -38,6 +39,15 @@ const trackManager = {
         
         // Add 270 degrees (90 + 180) to flip the chevron and account for its default right orientation
         return ((Math.atan2(y, x) * 180 / Math.PI) + 270) % 360;
+    },
+
+    // Calculate cumulative distances for the track
+    calculateTrackDistances: function() {
+        this.trackDistances = [0];
+        for (let i = 1; i < this.trackPoints.length; i++) {
+            const distance = this.trackPoints[i - 1].distanceTo(this.trackPoints[i]);
+            this.trackDistances.push(this.trackDistances[i - 1] + distance);
+        }
     },
 
     // Initialize track handling
@@ -67,6 +77,9 @@ const trackManager = {
                         if (coordinates.length > 0) {
                             // Convert coordinates to LatLng array
                             this.trackPoints = coordinates.map(coord => L.latLng(coord[1], coord[0]));
+
+                            // Calculate track distances
+                            this.calculateTrackDistances();
 
                             // Draw the track line
                             this.trackLine = L.polyline(this.trackPoints, {
@@ -110,6 +123,9 @@ const trackManager = {
 
                             // Show clear button
                             document.querySelector('.clear-button').style.display = 'inline-block';
+
+                            // Show progress display when a track is loaded
+                            document.getElementById('progress-display').style.display = 'block';
 
                             // Request wake lock
                             await this.requestWakeLock();
@@ -184,6 +200,9 @@ const trackManager = {
 
         // Hide clear button
         document.querySelector('.clear-button').style.display = 'none';
+
+        // Hide progress display when clearing the track
+        document.getElementById('progress-display').style.display = 'none';
 
         // Release wake lock
     },
