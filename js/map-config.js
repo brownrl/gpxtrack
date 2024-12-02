@@ -1,6 +1,6 @@
 // Map configuration and initialization
 const mapConfig = {
-  zoomLevel: 18,
+  zoomLevel: 17,
   blackTileLayer: null,
   osmTileLayer: null,
 
@@ -14,7 +14,8 @@ const mapConfig = {
       doubleClickZoom: false,  // Disable double click zoom
       boxZoom: false,          // Disable box zoom
       keyboard: false,         // Disable keyboard navigation
-    }).setView([0, 0], this.zoomLevel);      // Start with closer zoom
+      tap: false              // Disable tap handler
+    });  // Don't set initial view, let location tracker handle it
 
     // Initialize tile layers
     this.blackTileLayer = this.createBlackTileLayer();

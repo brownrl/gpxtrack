@@ -2,17 +2,91 @@
 
 // Default properties for location markers
 const markerRadius = 5;
-const markerColor = '#3388ff';
-const markerFillColor = '#3388ff';
+const markerColor = '#808080'; // Grey color
+const markerFillColor = '#808080';
 const markerFillOpacity = 1;
+
+// Create chevron icon for heading
+function createHeadingChevron(heading) {
+    return L.divIcon({
+        html: `<div style="
+            transform: rotate(${heading}deg);
+            font-size: 36px;
+            line-height: 0;
+            color: white;
+            font-weight: bold;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 3px;
+            margin-top: 3px;
+            font-family: Arial, sans-serif;
+        ">›</div>`,
+        className: 'heading-chevron',
+        iconSize: [40, 40],
+        iconAnchor: [20, 20]
+    });
+}
 
 // Removed map dependency from locationTracker
 const locationTracker = {
     paused: false,
-    zoomLevel: 18,
+    zoomLevel: 17,
     locationCircle: null,
+    headingMarker: null,
+    currentHeading: null,
+
+    requestPermissions: async function() {
+        if (typeof DeviceOrientationEvent !== 'undefined' && 
+            typeof DeviceOrientationEvent.requestPermission === 'function') {
+            try {
+                const permission = await DeviceOrientationEvent.requestPermission();
+                if (permission === 'granted') {
+                    window.addEventListener('deviceorientation', this.handleOrientation.bind(this));
+                }
+            } catch (error) {
+                console.error('Error requesting device orientation permission:', error);
+            }
+        } else {
+            // For devices that don't require permission
+            window.addEventListener('deviceorientation', this.handleOrientation.bind(this));
+        }
+    },
+
+    handleOrientation: function(event) {
+        if (event.webkitCompassHeading) {
+            // For iOS devices
+            this.currentHeading = event.webkitCompassHeading;
+        } else if (event.alpha !== null) {
+            // For Android devices
+            this.currentHeading = 360 - event.alpha;
+        }
+    },
 
     initLocationTracking: function(map) {
+        if (!map || typeof map.on !== 'function') {
+            return;
+        }
+        
+        // Request permissions for device orientation
+        this.requestPermissions();
+
+        // Reset state
+        this.paused = true;
+        this.currentHeading = null;
+        
+        if (this.locationCircle) {
+            map.removeLayer(this.locationCircle);
+            this.locationCircle = null;
+        }
+        if (this.headingMarker) {
+            map.removeLayer(this.headingMarker);
+            this.headingMarker = null;
+        }
+
+        // Start tracking
         this.unpause(map);
     },
 
@@ -21,10 +95,15 @@ const locationTracker = {
             return;
         }
 
+        // Remove previous markers
         if (this.locationCircle) {
             map.removeLayer(this.locationCircle);
         }
+        if (this.headingMarker) {
+            map.removeLayer(this.headingMarker);
+        }
 
+        // Add location circle
         this.locationCircle = L.circle(e.latlng, {
             radius: markerRadius,
             color: markerColor,
@@ -32,14 +111,22 @@ const locationTracker = {
             fillOpacity: markerFillOpacity
         }).addTo(map);
 
-        map.setView(e.latlng, this.zoomLevel, {
-            animate: true,
-            duration: 0.5
-        });
+        // Add heading chevron if heading is available
+        if (this.currentHeading !== null) {
+            this.headingMarker = L.marker(e.latlng, {
+                icon: createHeadingChevron(this.currentHeading),
+                zIndexOffset: 1000  // Ensure chevron appears above circle
+            }).addTo(map);
+        }
+
+        // Center map on position if we're tracking
+        if (!this.paused) {
+            map.setView(e.latlng, this.zoomLevel);
+        }
     },
 
     onLocationError: function(e) {
-        alert(e.message);
+        return;
     },
 
     pause: function(map) {
@@ -47,19 +134,46 @@ const locationTracker = {
         map.off('locationfound', this.onLocationFound);
         map.off('locationerror', this.onLocationError);
         map.stopLocate();
+        window.removeEventListener('deviceorientation', this.handleOrientation);
+
+        // Clean up markers
+        if (this.locationCircle) {
+            map.removeLayer(this.locationCircle);
+            this.locationCircle = null;
+        }
+        if (this.headingMarker) {
+            map.removeLayer(this.headingMarker);
+            this.headingMarker = null;
+        }
     },
 
     unpause: function(map) {
-        this.paused = false;
         if (!map || typeof map.on !== 'function') {
             return;
         }
-        map.on('locationfound', (e) => this.onLocationFound(e, map));
-        map.on('locationerror', this.onLocationError);
+
+        this.paused = false;
+
+        // Bind location events with proper context
+        const boundLocationFound = (e) => this.onLocationFound(e, map);
+        const boundLocationError = (e) => this.onLocationError(e);
+        
+        // Remove any existing listeners to prevent duplicates
+        map.off('locationfound');
+        map.off('locationerror');
+        
+        // Add new listeners
+        map.on('locationfound', boundLocationFound);
+        map.on('locationerror', boundLocationError);
+        
+        // Start location tracking with options
         map.locate({
             watch: true,
             enableHighAccuracy: true,
-            timeout: 10000
+            timeout: 10000,
+            maximumAge: 0,
+            setView: true,      // Automatically set the map view
+            maxZoom: this.zoomLevel
         });
     }
 };

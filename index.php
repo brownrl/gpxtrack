@@ -51,23 +51,15 @@ header("Cache-Control: no-store, private");
     <script src="https://cdn.jsdelivr.net/npm/@mapbox/togeojson@0.16.0/togeojson.min.js"></script>
 
     <!-- App JavaScript -->
-    <script src="js/map-config.js"></script>
-    <script src="js/track-manager.js"></script>
-    <script src="js/location-tracker.js"></script>
-    <script src="js/ui-controls.js"></script>
-    <script src="app.js"></script>
+    <script type="module" src="app.js"></script>
     
     <!-- Service Worker Registration -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js')
-                    .then(registration => {
-                        console.log('ServiceWorker registration successful');
-                    })
-                    .catch(err => {
-                        console.log('ServiceWorker registration failed: ', err);
-                    });
+                    .then(registration => {})
+                    .catch(err => {});
             });
         }
     </script>

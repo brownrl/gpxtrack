@@ -7,7 +7,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize the map
     const map = mapConfig.initMap();
     if (!map || typeof map.addLayer !== 'function') {
-        console.error('Invalid map instance upon initialization');
         return;
     }
 
