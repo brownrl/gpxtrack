@@ -2,81 +2,77 @@ import trackManager from './track-manager.js';
 import { calculateBearing } from './utils.js';
 
 // Location tracking functionality
-
-// Default properties for location markers
-const markerRadius = 8; // Increased from 5
-const markerColor = '#808080'; // Grey color
-const markerFillColor = '#808080';
-const markerFillOpacity = 1;
-
-// Number of points to use for averaging the bearing
-const averageBearingPoints = 5;
-
-// Removed map dependency from locationTracker
 const locationTracker = {
+    // Configuration
     paused: false,
     zoomLevel: 17,
-    locationCircle: null,
-    currentHeading: null,
-    previousLocations: [], // Store the last three locations
+    watchId: null,
+    previousLocations: [], // Store the last locations for bearing calculation
     movementTolerance: 1, // meters
+
+    // Location circle appearance
+    circleRadius: 8,
+    circleColor: '#007bff',
+
+    // Methods to update circle appearance
+    setCircleRadius: function(radius) {
+        this.circleRadius = radius;
+        return this;
+    },
+
+    setCircleColor: function(color) {
+        this.circleColor = color;
+        return this;
+    },
 
     initLocationTracking: function(map) {
         this.unpause(map);
     },
 
-    onLocationFound: function(e, map) {
-        if (!map || typeof map.addLayer !== 'function') {
-            return;
-        }
-
+    onLocationUpdate: function(position, map) {
+        const { longitude, latitude } = position.coords;
+        
         // Add new location to the list
-        this.previousLocations.push(e.latlng);
-        if (this.previousLocations.length > averageBearingPoints) {
-            this.previousLocations.shift(); // Keep only the last points defined by averageBearingPoints
+        const newLocation = { lng: longitude, lat: latitude };
+        this.previousLocations.push(newLocation);
+        if (this.previousLocations.length > 5) {
+            this.previousLocations.shift();
         }
 
-        // Calculate average bearing if we have at least two previous points
-        if (this.previousLocations.length >= 2) {
-            let totalBearing = 0;
-            for (let i = 0; i < this.previousLocations.length - 1; i++) {
-                totalBearing += calculateBearing(this.previousLocations[i], this.previousLocations[i + 1]);
-            }
-            this.currentHeading = totalBearing / (this.previousLocations.length - 1);
+        // Update the location source if it exists
+        if (map.getSource('location')) {
+            map.getSource('location').setData({
+                type: 'Point',
+                coordinates: [longitude, latitude]
+            });
         }
 
-        // Remove previous markers
-        if (this.locationCircle) {
-            map.removeLayer(this.locationCircle);
-        }
-
-        // Add location circle
-        this.locationCircle = L.circle(e.latlng, {
-            radius: markerRadius,
-            color: markerColor,
-            fillColor: markerFillColor,
-            fillOpacity: markerFillOpacity
-        }).addTo(map);
-
-        // Update progress
+        // Update progress if we have a track
         this.updateProgress(map);
 
-        // Center map on position if we're tracking
+        // Center map on position if we're not paused
         if (!this.paused) {
-            map.setView(e.latlng, this.zoomLevel);
+            map.flyTo({ 
+                center: [longitude, latitude], 
+                zoom: this.zoomLevel 
+            });
         }
     },
 
     updateProgress: function(map) {
-        if (!trackManager.trackPoints || trackManager.trackPoints.length === 0) {
+        if (!trackManager.trackPoints || trackManager.trackPoints.length === 0 || this.previousLocations.length === 0) {
             return;
         }
 
         // Find the closest track point to the current location
         let closestIndex = 0;
         let closestDistance = Infinity;
+        const currentLocation = this.previousLocations[this.previousLocations.length - 1];
+        
         for (let i = 0; i < trackManager.trackPoints.length; i++) {
-            const distance = map.distance(this.previousLocations[this.previousLocations.length - 1], trackManager.trackPoints[i]);
+            const point1 = mapboxgl.MercatorCoordinate.fromLngLat(currentLocation);
+            const point2 = mapboxgl.MercatorCoordinate.fromLngLat(trackManager.trackPoints[i]);
+            const distance = point1.distanceTo(point2);
             if (distance < closestDistance) {
                 closestDistance = distance;
                 closestIndex = i;
@@ -94,20 +90,21 @@ const locationTracker = {
         }
     },
 
-    onLocationError: function(e) {
-        return;
-    },
-
     pause: function(map) {
         this.paused = true;
-        map.off('locationfound', this.onLocationFound);
-        map.off('locationerror', this.onLocationError);
-        map.stopLocate();
 
-        // Clean up markers
-        if (this.locationCircle) {
-            map.removeLayer(this.locationCircle);
-            this.locationCircle = null;
+        // Stop watching location
+        if (this.watchId !== null) {
+            navigator.geolocation.clearWatch(this.watchId);
+            this.watchId = null;
+        }
+
+        // Remove the location layer and source if they exist
+        if (map.getLayer('location')) {
+            map.removeLayer('location');
+        }
+        if (map.getSource('location')) {
+            map.removeSource('location');
         }
     },
 
@@ -118,27 +115,58 @@ const locationTracker = {
 
         this.paused = false;
 
-        // Bind location events with proper context
-        const boundLocationFound = (e) => this.onLocationFound(e, map);
-        const boundLocationError = (e) => this.onLocationError(e);
-        
-        // Remove any existing listeners to prevent duplicates
-        map.off('locationfound');
-        map.off('locationerror');
-        
-        // Add new listeners
-        map.on('locationfound', boundLocationFound);
-        map.on('locationerror', boundLocationError);
-        
-        // Start location tracking with options
-        map.locate({
-            watch: true,
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 0,
-            setView: true,      // Automatically set the map view
-            maxZoom: this.zoomLevel
-        });
+        const setupLocationTracking = () => {
+            // Setup location source and layer if they don't exist
+            if (!map.getSource('location')) {
+                map.addSource('location', {
+                    type: 'geojson',
+                    data: {
+                        type: 'Point',
+                        coordinates: [0, 0]
+                    }
+                });
+                map.addLayer({
+                    id: 'location',
+                    source: 'location',
+                    type: 'circle',
+                    paint: {
+                        'circle-radius': this.circleRadius,
+                        'circle-color': this.circleColor
+                    }
+                });
+            }
+
+            // Start location tracking
+            const handleError = (error) => {
+                console.error('Location error:', error);
+            };
+
+            // Get initial position
+            navigator.geolocation.getCurrentPosition(
+                (position) => this.onLocationUpdate(position, map),
+                handleError,
+                { enableHighAccuracy: true }
+            );
+
+            // Start watching position
+            this.watchId = navigator.geolocation.watchPosition(
+                (position) => this.onLocationUpdate(position, map),
+                handleError,
+                {
+                    enableHighAccuracy: true,
+                    maximumAge: 0,
+                    timeout: 5000
+                }
+            );
+        };
+
+        // If the style is already loaded, setup tracking immediately
+        if (map.isStyleLoaded()) {
+            setupLocationTracking();
+        } else {
+            // Otherwise wait for the style to load
+            map.once('style.load', setupLocationTracking);
+        }
     }
 };
 

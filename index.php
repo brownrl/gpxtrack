@@ -4,6 +4,7 @@ header("Cache-Control: no-store, private");
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,54 +16,53 @@ header("Cache-Control: no-store, private");
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-title" content="GPX">
-    
+
     <!-- PWA Icons -->
     <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192x192.png">
     <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192x192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512x512.png">
     <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512x512.png">
-    
+
     <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
-    
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-     crossorigin=""/>
-    
+
+    <!-- Include Mapbox GL JS CSS and JS -->
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+
     <!-- App CSS -->
     <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-    <div id="map"></div>
-    <div id="progress-display" class="progress-display">&nbsp;</div>
-    <div class="file-picker-container">
-        <button class="toggle-map-button">MAP</button>
-        <button class="file-picker-button">GPX</button>
-        <input type="file" id="gpx-file" accept=".gpx" style="display: none;">
-        <button class="clear-button" style="display: none">Clear</button>
-    </div>
 
-    <!-- Leaflet JavaScript -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-     crossorigin=""></script>
-    
+    <!-- App JavaScript -->
+    <script>
+        // Set the Mapbox access token directly in index.php
+        mapboxgl.accessToken = 'pk.eyJ1IjoiYnJvd25ybCIsImEiOiJjbTQ4N29lbjcwYmJyMmxzY2FsODJwYnEzIn0.dPYC5kbBiczzT3c1fy9ahw';
+    </script>
+    <script type="module" src="app.js"></script>
+
     <!-- ToGeoJSON -->
     <script src="https://cdn.jsdelivr.net/npm/@mapbox/togeojson@0.16.0/togeojson.min.js"></script>
 
-    <!-- App JavaScript -->
-    <script type="module" src="app.js"></script>
-    
     <!-- Service Worker Registration -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js')
-                    .then(registration => {})
-                    .catch(err => {});
+                    .then(registration => { })
+                    .catch(err => { });
             });
         }
     </script>
+</head>
+
+<body>
+    <div id="map"></div>
+    <div id="progress-display" class="progress-display">&nbsp;</div>
+    <div class="file-picker-container">
+        <button class="file-picker-button">GPX</button>
+        <button class="clear-button" style="display: none;">Clear</button>
+        <input type="file" id="gpx-file" accept=".gpx" style="display: none;">
+    </div>
 </body>
+
 </html>

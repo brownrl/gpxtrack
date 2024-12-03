@@ -27,12 +27,6 @@ const uiControls = {
             resetHideTimeout();
         });
 
-        // Toggle map button click handler
-        document.querySelector('.toggle-map-button').addEventListener('click', function() {
-            mapConfig.toggleTileLayer(map);
-            resetHideTimeout();
-        });
-
         // Clear button click handler
         document.querySelector('.clear-button').addEventListener('click', () => {
             trackManager.clearTrack(map);

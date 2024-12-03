@@ -1,3 +1,5 @@
+// Removed centralized Mapbox access token export
+
 import mapConfig from './js/map-config.js';
 import locationTracker from './js/location-tracker.js';
 import trackManager from './js/track-manager.js';

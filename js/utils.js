@@ -20,22 +20,8 @@ export function createChevronIcon(bearing) {
     const xOffset = 0; // Reset offset
     const yOffset = 0; // Reset offset
     const rotationOffset = 0; // Rotation offset in degrees
-    return L.divIcon({
-        html: `<div style="
-            transform: rotate(${bearing + rotationOffset}deg) translate(${xOffset}px, ${yOffset}px);
-            font-size: ${chevronSize}px;
-            line-height: ${chevronSize}px;
-            color: ${chevronColor};
-            font-weight: bold;
-            width: ${chevronSize}px;
-            height: ${chevronSize}px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transform-origin: center center;
-            font-family: Arial, sans-serif;
-        ">${chevronCharacter}</div>`,
-        iconSize: [chevronSize, chevronSize],
-        className: '',
-    });
+    return new mapboxgl.Marker({
+        color: 'blue',
+        draggable: false
+    }).setLngLat([0, 0]); // Placeholder coordinates
 }
