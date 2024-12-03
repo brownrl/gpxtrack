@@ -1,4 +1,5 @@
 import trackManager from './track-manager.js';
+import { calculateBearing } from './utils.js';
 
 // Location tracking functionality
 
@@ -39,7 +40,7 @@ const locationTracker = {
         if (this.previousLocations.length >= 2) {
             let totalBearing = 0;
             for (let i = 0; i < this.previousLocations.length - 1; i++) {
-                totalBearing += this.calculateBearing(this.previousLocations[i], this.previousLocations[i + 1]);
+                totalBearing += calculateBearing(this.previousLocations[i], this.previousLocations[i + 1]);
             }
             this.currentHeading = totalBearing / (this.previousLocations.length - 1);
         }
@@ -93,20 +94,6 @@ const locationTracker = {
         }
     },
 
-    calculateBearing: function(start, end) {
-        const startLat = start.lat * Math.PI / 180;
-        const startLng = start.lng * Math.PI / 180;
-        const endLat = end.lat * Math.PI / 180;
-        const endLng = end.lng * Math.PI / 180;
-
-        const y = Math.sin(endLng - startLng) * Math.cos(endLat);
-        const x = Math.cos(startLat) * Math.sin(endLat) -
-                 Math.sin(startLat) * Math.cos(endLat) * Math.cos(endLng - startLng);
-        
-        // Add 270 degrees (90 + 180) to flip the chevron and account for its default right orientation
-        return ((Math.atan2(y, x) * 180 / Math.PI) + 270) % 360;
-    },
-
     onLocationError: function(e) {
         return;
     },
@@ -154,15 +141,5 @@ const locationTracker = {
         });
     }
 };
-
-function checkPWAStatus() {
-    const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-    const pwaWarning = document.getElementById('pwa-warning');
-    if (!isPWA && pwaWarning) {
-        pwaWarning.style.display = 'block';
-    }
-}
-
-document.addEventListener('DOMContentLoaded', checkPWAStatus);
 
 export default locationTracker;

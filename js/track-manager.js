@@ -1,14 +1,8 @@
 import locationTracker from './location-tracker.js';
-import { createChevronIcon } from './chevron-utils.js';
+import { calculateBearing, createChevronIcon } from './utils.js';
 
 // Track management functionality
 const trackManager = {
-    // Default properties for start and end markers
-    startMarkerColor: '#00ff00', // Green
-    endMarkerColor: '#ff0000', // Red
-    markerRadius: 8, // Increased from 5
-    markerFillOpacity: 1,
-
     // Default properties for the track line and points
     trackLineColor: '#0066ff', // Blue
     trackLineWeight: 4,
@@ -20,24 +14,7 @@ const trackManager = {
     trackLine: null,
     trackPointMarkers: [],
     directionMarkers: [],
-    startMarker: null,
-    endMarker: null,
     trackDistances: [], // Pre-calculated distances for each track point
-
-    // Calculate bearing between two points
-    calculateBearing: function(start, end) {
-        const startLat = start.lat * Math.PI / 180;
-        const startLng = start.lng * Math.PI / 180;
-        const endLat = end.lat * Math.PI / 180;
-        const endLng = end.lng * Math.PI / 180;
-
-        const y = Math.sin(endLng - startLng) * Math.cos(endLat);
-        const x = Math.cos(startLat) * Math.sin(endLat) -
-                 Math.sin(startLat) * Math.cos(endLat) * Math.cos(endLng - startLng);
-        
-        // Add 270 degrees (90 + 180) to flip the chevron and account for its default right orientation
-        return ((Math.atan2(y, x) * 180 / Math.PI) + 270) % 360;
-    },
 
     // Calculate cumulative distances for the track
     calculateTrackDistances: function() {
@@ -90,7 +67,7 @@ const trackManager = {
                                 // Add markers every 4th point (except for last point)
                                 if (i % 4 === 0 && i < this.trackPoints.length - 1) {
                                     // Add direction marker
-                                    const bearing = this.calculateBearing(
+                                    const bearing = calculateBearing(
                                         this.trackPoints[i],
                                         this.trackPoints[i + 1]
                                     );
@@ -101,20 +78,6 @@ const trackManager = {
                                     this.directionMarkers.push(marker);
                                 }
                             }
-
-                            // Add start and end markers as circles
-                            this.startMarker = L.circle(this.trackPoints[0], {
-                                radius: this.markerRadius,
-                                color: this.startMarkerColor,
-                                fillColor: this.startMarkerColor,
-                                fillOpacity: this.markerFillOpacity
-                            }).addTo(map);
-                            this.endMarker = L.circle(this.trackPoints[this.trackPoints.length - 1], {
-                                radius: this.markerRadius,
-                                color: this.endMarkerColor,
-                                fillColor: this.endMarkerColor,
-                                fillOpacity: this.markerFillOpacity
-                            }).addTo(map);
 
                             // Fit map to track bounds
                             map.fitBounds(this.trackLine.getBounds());
@@ -147,15 +110,6 @@ const trackManager = {
         // Clear direction markers
         this.directionMarkers.forEach(marker => map.removeLayer(marker));
         this.directionMarkers = [];
-
-        if (this.startMarker) {
-            map.removeLayer(this.startMarker);
-            this.startMarker = null;
-        }
-        if (this.endMarker) {
-            map.removeLayer(this.endMarker);
-            this.endMarker = null;
-        }
 
         // Hide clear button
         document.querySelector('.clear-button').style.display = 'none';

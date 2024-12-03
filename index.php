@@ -36,7 +36,6 @@ header("Cache-Control: no-store, private");
 <body>
     <div id="map"></div>
     <div id="progress-display" class="progress-display">&nbsp;</div>
-    <div id="pwa-warning" class="pwa-warning">Add to Home Screen for better experience</div>
     <div class="file-picker-container">
         <button class="toggle-map-button">MAP</button>
         <button class="file-picker-button">GPX</button>
