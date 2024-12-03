@@ -1,4 +1,3 @@
-import { createChevronIcon } from './chevron-utils.js';
 import trackManager from './track-manager.js';
 
 // Location tracking functionality
@@ -17,21 +16,12 @@ const locationTracker = {
     paused: false,
     zoomLevel: 17,
     locationCircle: null,
-    headingMarker: null,
     currentHeading: null,
     previousLocations: [], // Store the last three locations
     movementTolerance: 1, // meters
 
     initLocationTracking: function(map) {
         this.unpause(map);
-
-        // Add initial heading chevron
-        if (!this.headingMarker) {
-            this.headingMarker = L.marker([0, 0], {
-                icon: createChevronIcon(0), // Default chevron pointing North
-                zIndexOffset: 1000  // Ensure chevron appears above circle
-            }).addTo(map);
-        }
     },
 
     onLocationFound: function(e, map) {
@@ -58,9 +48,6 @@ const locationTracker = {
         if (this.locationCircle) {
             map.removeLayer(this.locationCircle);
         }
-        if (this.headingMarker) {
-            map.removeLayer(this.headingMarker);
-        }
 
         // Add location circle
         this.locationCircle = L.circle(e.latlng, {
@@ -69,9 +56,6 @@ const locationTracker = {
             fillColor: markerFillColor,
             fillOpacity: markerFillOpacity
         }).addTo(map);
-
-        // Add heading chevron
-        this.updateHeadingMarker(map, e.latlng);
 
         // Update progress
         this.updateProgress(map);
@@ -109,19 +93,6 @@ const locationTracker = {
         }
     },
 
-    updateHeadingMarker: function(map, position) {
-        if (!this.headingMarker) {
-            this.headingMarker = L.marker(position, {
-                icon: createChevronIcon(this.currentHeading || 0), // Use currentHeading or default to 0
-                zIndexOffset: 1000  // Ensure chevron appears above circle
-            });
-        } else {
-            this.headingMarker.setIcon(createChevronIcon(this.currentHeading || 0));
-            this.headingMarker.setLatLng(position);
-        }
-        this.headingMarker.addTo(map);
-    },
-
     calculateBearing: function(start, end) {
         const startLat = start.lat * Math.PI / 180;
         const startLng = start.lng * Math.PI / 180;
@@ -150,10 +121,6 @@ const locationTracker = {
         if (this.locationCircle) {
             map.removeLayer(this.locationCircle);
             this.locationCircle = null;
-        }
-        if (this.headingMarker) {
-            map.removeLayer(this.headingMarker);
-            this.headingMarker = null;
         }
     },
 
