@@ -11,11 +11,45 @@ const trackManager = {
     trackPointWeight: 2,
     interpolationDistance: 50, // meters
 
+    // Configuration for direction indicators
+    arrowConfig: {
+        width: 16,
+        height: 24,
+        color: '#AAAAAA',  // Brighter color
+        indentFactor: 0.7,  // How deep the bottom indent goes (0-1)
+        spacing: 200,       // Distance between arrows in pixels
+        frequency: 4        // Draw arrow every Nth point
+    },
+
     trackPoints: [],
+    trackDistances: [],
     trackLine: null,
-    trackPointMarkers: [],
     directionMarkers: [],
-    trackDistances: [], // Pre-calculated distances for each track point
+
+    // Create arrow image for direction indicators
+    createArrowImage: function() {
+        const cfg = this.arrowConfig;
+        const canvas = document.createElement('canvas');
+        canvas.width = cfg.width;
+        canvas.height = cfg.height;
+        const ctx = canvas.getContext('2d');
+
+        // Clear background to transparent
+        ctx.clearRect(0, 0, cfg.width, cfg.height);
+
+        // Draw a more arrow-like triangle
+        ctx.beginPath();
+        ctx.moveTo(cfg.width/2, 2);                    // Top point
+        ctx.lineTo(cfg.width-2, cfg.height-2);         // Bottom right
+        ctx.lineTo(cfg.width/2, cfg.height*cfg.indentFactor);  // Bottom middle indent
+        ctx.lineTo(2, cfg.height-2);                   // Bottom left
+        ctx.closePath();
+
+        ctx.fillStyle = cfg.color;
+        ctx.fill();
+
+        return ctx.getImageData(0, 0, cfg.width, cfg.height);
+    },
 
     // Calculate distance between two points using Haversine formula
     calculateDistance: function(point1, point2) {
@@ -133,28 +167,12 @@ const trackManager = {
                                 }
                             };
 
-                            // Create direction points (every 4th point)
-                            const directionPoints = {
-                                'type': 'FeatureCollection',
-                                'features': interpolatedCoordinates.filter((_, index) => index % 4 === 0)
-                                    .map((coord, index) => {
-                                        const nextPoint = interpolatedCoordinates[Math.min(index * 4 + 1, interpolatedCoordinates.length - 1)];
-                                        const bearing = calculateBearing(
-                                            [coord[1], coord[0]], // Convert to [lat, lng] for bearing calculation
-                                            [nextPoint[1], nextPoint[0]]
-                                        );
-                                        return {
-                                            'type': 'Feature',
-                                            'geometry': {
-                                                'type': 'Point',
-                                                'coordinates': coord
-                                            },
-                                            'properties': {
-                                                'bearing': bearing
-                                            }
-                                        };
-                                    })
-                            };
+                            // Create direction points with bearings
+                            const directionPoints = this.createDirectionPoints(interpolatedCoordinates);
+
+                            // Add arrow image to map
+                            const arrowImage = this.createArrowImage();
+                            map.addImage('direction-arrow', arrowImage, { pixelRatio: 1 });
 
                             // Add track line source and layer
                             map.addSource('track', {
@@ -162,42 +180,42 @@ const trackManager = {
                                 'data': this.trackLine
                             });
 
-                            map.addLayer({
-                                'id': 'track',
-                                'type': 'line',
-                                'source': 'track',
-                                'layout': {
-                                    'line-join': 'round',
-                                    'line-cap': 'round'
-                                },
-                                'paint': {
-                                    'line-color': this.trackLineColor,
-                                    'line-width': this.trackLineWeight
-                                }
-                            });
-
-                            // Add direction arrows source and layer
+                            // Add direction points source
                             map.addSource('track-directions', {
                                 'type': 'geojson',
                                 'data': directionPoints
                             });
 
+                            // Add track line first (bottom layer)
                             map.addLayer({
-                                'id': 'track-directions',
-                                'type': 'symbol',
-                                'source': 'track-directions',
-                                'layout': {
-                                    'symbol-placement': 'point',
-                                    'icon-image': 'triangle-11',
-                                    'icon-rotate': ['get', 'bearing'],
-                                    'icon-rotation-alignment': 'map',
-                                    'icon-allow-overlap': true,
-                                    'icon-ignore-placement': true,
-                                    'icon-size': 0.8
+                                'id': 'track',
+                                'type': 'line',
+                                'source': 'track',
+                                'paint': {
+                                    'line-color': '#FF0000',
+                                    'line-width': 3
                                 }
                             });
 
-                            // Fit the map to the track bounds
+                            // Get all existing layers
+                            const layers = map.getStyle().layers;
+                            const topLayer = layers[layers.length - 1].id;
+
+                            // Add direction arrows as top layer
+                            map.addLayer({
+                                id: 'track-directions',
+                                type: 'symbol',
+                                source: 'track-directions',
+                                layout: {
+                                    'icon-image': 'direction-arrow',
+                                    'icon-size': 1,
+                                    'icon-rotate': ['get', 'bearing'],
+                                    'icon-allow-overlap': true,
+                                    'symbol-spacing': 50
+                                }
+                            }); // Add as topmost layer
+
+                            // First fit to track bounds
                             const bounds = interpolatedCoordinates.reduce((bounds, coord) => {
                                 return bounds.extend(coord);
                             }, new mapboxgl.LngLatBounds(interpolatedCoordinates[0], interpolatedCoordinates[0]));
@@ -207,10 +225,13 @@ const trackManager = {
                                 duration: 1000
                             });
 
-                            // Wait for 3 seconds after loading the track, then resume location tracking
-                            setTimeout(() => {
-                                locationTracker.unpause(map);
-                            }, 3000);
+                            // Wait for bounds animation to complete, then resume location tracking
+                            map.once('moveend', () => {
+                                // Wait 3 seconds before unpausing location tracking
+                                setTimeout(() => {
+                                    locationTracker.unpause(map);
+                                }, 3000);
+                            });
 
                             // Show clear button
                             document.querySelector('.clear-button').style.display = 'inline-block';
@@ -246,6 +267,11 @@ const trackManager = {
             map.removeSource('track-directions');
         }
 
+        // Remove arrow image
+        if (map.hasImage('direction-arrow')) {
+            map.removeImage('direction-arrow');
+        }
+
         // Reset track data
         this.trackPoints = [];
         this.trackDistances = [];
@@ -260,17 +286,40 @@ const trackManager = {
         }
     },
 
-    // Ensure chevron is created even if heading is 0 degrees
-    createChevronMarker: function(map, position, heading) {
-        const chevron = createChevronIcon(heading || 0); // Default to 0 degrees if heading is not provided
-        const marker = new mapboxgl.Marker({
-            draggable: false
-        })
-            .setLngLat(position)
-            .setPopup(new mapboxgl.Popup()
-                .setHTML(chevron))
-            .addTo(map);
-        this.directionMarkers.push(marker);
+    // Create direction points with bearings
+    createDirectionPoints: function(coordinates) {
+        return {
+            type: 'FeatureCollection',
+            features: coordinates
+                .filter((_, i) => i % this.arrowConfig.frequency === 0)  // Only keep every Nth point
+                .map((coord, i, filteredCoords) => {
+                    // Find the original index in the full coordinates array
+                    const originalIndex = i * this.arrowConfig.frequency;
+                    
+                    // Calculate bearing to the immediate next point
+                    let bearing = 0;
+                    if (originalIndex < coordinates.length - 1) {
+                        const nextCoord = coordinates[originalIndex + 1];
+                        
+                        // Convert coordinates to {lat, lng} objects
+                        bearing = calculateBearing(
+                            { lat: coord[1], lng: coord[0] },      // current point
+                            { lat: nextCoord[1], lng: nextCoord[0] } // next point
+                        );
+                    }
+                    
+                    return {
+                        type: 'Feature',
+                        geometry: {
+                            type: 'Point',
+                            coordinates: coord
+                        },
+                        properties: {
+                            bearing: bearing
+                        }
+                    };
+                })
+        };
     },
 };
 

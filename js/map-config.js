@@ -1,5 +1,4 @@
 // Map configuration and initialization
-import locationTracker from './location-tracker.js';
 
 const mapConfig = {
   zoomLevel: 17,

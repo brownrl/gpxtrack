@@ -70,8 +70,8 @@ const locationTracker = {
         const currentLocation = this.previousLocations[this.previousLocations.length - 1];
         
         for (let i = 0; i < trackManager.trackPoints.length; i++) {
-            const point1 = mapboxgl.MercatorCoordinate.fromLngLat(currentLocation);
-            const point2 = mapboxgl.MercatorCoordinate.fromLngLat(trackManager.trackPoints[i]);
+            const point1 = new mapboxgl.LngLat(currentLocation.lng, currentLocation.lat);
+            const point2 = new mapboxgl.LngLat(trackManager.trackPoints[i][0], trackManager.trackPoints[i][1]);
             const distance = point1.distanceTo(point2);
             if (distance < closestDistance) {
                 closestDistance = distance;
