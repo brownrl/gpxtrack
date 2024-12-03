@@ -10,10 +10,9 @@ const locationTracker = {
     watchId: null,
     previousLocations: [], // Store the last locations for bearing calculation
     movementTolerance: 1, // meters
-    headingPoints: 10,     // Number of points to use for heading calculation
+    headingPoints: 8,     // Number of points to use for heading calculation
     isAnimating: false,    // Track if we're currently animating
     animationDuration: 500, // Duration in ms for animations
-    needsInitialZoom: false, // Track if we need initial zoom
 
     // Location circle appearance
     circleRadius: 8,
@@ -47,21 +46,28 @@ const locationTracker = {
         // Calculate average heading from recent points
         let heading = 0;
         if (this.previousLocations.length >= 2) {
-            let totalBearing = 0;
-            let bearingCount = 0;
+            let weightedBearing = 0;
+            let totalWeight = 0;
             
-            // Calculate bearings between consecutive points
+            // Calculate weighted bearings between consecutive points
+            // More recent points get higher weights
             for (let i = 1; i < this.previousLocations.length; i++) {
                 const prevPoint = this.previousLocations[i - 1];
                 const currentPoint = this.previousLocations[i];
                 
                 const bearing = calculateBearing(prevPoint, currentPoint);
-                totalBearing += bearing;
-                bearingCount++;
+                
+                // Weight increases linearly for more recent points
+                const weight = i;
+                weightedBearing += bearing * weight;
+                totalWeight += weight;
             }
             
-            // Calculate average bearing
-            heading = totalBearing / bearingCount;
+            // Calculate weighted average bearing
+            heading = weightedBearing / totalWeight;
+
+            // Normalize heading to 0-360 range
+            heading = (heading + 360) % 360;
         }
 
         // Update the location source if it exists
@@ -79,28 +85,13 @@ const locationTracker = {
         if (!this.paused && !this.isAnimating) {
             this.isAnimating = true;
 
-            if (this.needsInitialZoom) {
-                // First time after unpausing - do a flyTo with zoom
-                map.flyTo({
-                    center: [longitude, latitude],
-                    zoom: this.zoomLevel,
-                    bearing: heading,
-                    duration: this.animationDuration,
-                    easing: t => t * (2 - t) // Ease out quadratic
-                });
-                this.needsInitialZoom = false;
-            } else {
-                // Regular update - just pan and rotate
-                map.panTo([longitude, latitude], {
-                    duration: this.animationDuration,
-                    easing: t => t * (2 - t)
-                });
-
-                map.rotateTo(heading, {
-                    duration: this.animationDuration,
-                    easing: t => t * (2 - t)
-                });
-            }
+            map.easeTo({
+                center: [longitude, latitude],
+                zoom: this.zoomLevel,
+                bearing: heading,
+                duration: this.animationDuration,
+                easing: t => t * (2 - t) // Ease out quadratic
+            });
 
             // Reset animation flag after animations complete
             setTimeout(() => {
@@ -129,7 +120,6 @@ const locationTracker = {
 
     unpause: function(map) {
         this.paused = false;
-        this.needsInitialZoom = true;
 
         const setupLocationTracking = () => {
             // Setup location source and layer if they don't exist
