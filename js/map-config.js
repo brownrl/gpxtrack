@@ -1,10 +1,8 @@
 // Map configuration and initialization
 
 const mapConfig = {
-  zoomLevel: 17,
-
   // Initialize and return the map instance
-  initMap: function() {
+  initMap: function () {
     const map = new mapboxgl.Map({
       container: 'map', // container ID
       style: 'mapbox://styles/brownrl/cm48cuxe6014o01si62vr078z', // custom style URL

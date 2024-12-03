@@ -1,5 +1,5 @@
 import locationTracker from './location-tracker.js';
-import { calculateBearing, createChevronIcon } from './utils.js';
+import { calculateBearing, calculateDistance } from './utils.js';
 
 // Track management functionality
 const trackManager = {
@@ -52,23 +52,7 @@ const trackManager = {
     },
 
     // Calculate distance between two points using Haversine formula
-    calculateDistance: function(point1, point2) {
-        const [lon1, lat1] = point1;
-        const [lon2, lat2] = point2;
-        
-        const R = 6371e3; // Earth's radius in meters
-        const φ1 = lat1 * Math.PI/180;
-        const φ2 = lat2 * Math.PI/180;
-        const Δφ = (lat2-lat1) * Math.PI/180;
-        const Δλ = (lon2-lon1) * Math.PI/180;
-
-        const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-                Math.cos(φ1) * Math.cos(φ2) *
-                Math.sin(Δλ/2) * Math.sin(Δλ/2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-        return R * c; // in meters
-    },
+    calculateDistance: calculateDistance,
 
     // Interpolate a point at a specific distance along a line segment
     interpolatePoint: function(point1, point2, fraction) {
@@ -113,14 +97,16 @@ const trackManager = {
 
     // Calculate cumulative distances for the track
     calculateTrackDistances: function() {
-        this.trackDistances = [0];
-        
+        this.trackDistances = [0];  // First point starts at 0
+        let cumulativeDistance = 0;
+
         for (let i = 1; i < this.trackPoints.length; i++) {
-            const distance = this.calculateDistance(
-                this.trackPoints[i - 1],
+            const distance = calculateDistance(
+                this.trackPoints[i-1],
                 this.trackPoints[i]
             );
-            this.trackDistances.push(this.trackDistances[i - 1] + distance);
+            cumulativeDistance += distance;
+            this.trackDistances.push(cumulativeDistance);
         }
     },
 
@@ -171,22 +157,30 @@ const trackManager = {
                             const directionPoints = this.createDirectionPoints(interpolatedCoordinates);
 
                             // Add arrow image to map
-                            const arrowImage = this.createArrowImage();
-                            map.addImage('direction-arrow', arrowImage, { pixelRatio: 1 });
+                            map.addImage('direction-arrow', this.createArrowImage());
+                            map.addSource('track-directions', {
+                                type: 'geojson',
+                                data: directionPoints
+                            });
+                            map.addLayer({
+                                'id': 'track-directions',
+                                'type': 'symbol',
+                                'source': 'track-directions',
+                                'layout': {
+                                    'icon-image': 'direction-arrow',
+                                    'icon-size': 1,
+                                    'icon-rotate': ['get', 'bearing'],
+                                    'icon-rotation-alignment': 'map',
+                                    'icon-allow-overlap': true,
+                                    'icon-ignore-placement': true
+                                }
+                            }); // Add as topmost layer
 
                             // Add track line source and layer
                             map.addSource('track', {
                                 'type': 'geojson',
                                 'data': this.trackLine
                             });
-
-                            // Add direction points source
-                            map.addSource('track-directions', {
-                                'type': 'geojson',
-                                'data': directionPoints
-                            });
-
-                            // Add track line first (bottom layer)
                             map.addLayer({
                                 'id': 'track',
                                 'type': 'line',
@@ -200,20 +194,6 @@ const trackManager = {
                             // Get all existing layers
                             const layers = map.getStyle().layers;
                             const topLayer = layers[layers.length - 1].id;
-
-                            // Add direction arrows as top layer
-                            map.addLayer({
-                                id: 'track-directions',
-                                type: 'symbol',
-                                source: 'track-directions',
-                                layout: {
-                                    'icon-image': 'direction-arrow',
-                                    'icon-size': 1,
-                                    'icon-rotate': ['get', 'bearing'],
-                                    'icon-allow-overlap': true,
-                                    'symbol-spacing': 50
-                                }
-                            }); // Add as topmost layer
 
                             // First fit to track bounds
                             const bounds = interpolatedCoordinates.reduce((bounds, coord) => {

@@ -1,18 +1,23 @@
 import trackManager from './track-manager.js';
+import progressTracker from './progress-tracker.js';
 import { calculateBearing } from './utils.js';
 
 // Location tracking functionality
 const locationTracker = {
     // Configuration
     paused: false,
-    zoomLevel: 17,
+    zoomLevel: 16,
     watchId: null,
     previousLocations: [], // Store the last locations for bearing calculation
     movementTolerance: 1, // meters
+    headingPoints: 10,     // Number of points to use for heading calculation
+    isAnimating: false,    // Track if we're currently animating
+    animationDuration: 500, // Duration in ms for animations
+    needsInitialZoom: false, // Track if we need initial zoom
 
     // Location circle appearance
     circleRadius: 8,
-    circleColor: '#007bff',
+    circleColor: '#0066ff',
 
     // Methods to update circle appearance
     setCircleRadius: function(radius) {
@@ -35,8 +40,28 @@ const locationTracker = {
         // Add new location to the list
         const newLocation = { lng: longitude, lat: latitude };
         this.previousLocations.push(newLocation);
-        if (this.previousLocations.length > 5) {
+        if (this.previousLocations.length > this.headingPoints) {
             this.previousLocations.shift();
+        }
+
+        // Calculate average heading from recent points
+        let heading = 0;
+        if (this.previousLocations.length >= 2) {
+            let totalBearing = 0;
+            let bearingCount = 0;
+            
+            // Calculate bearings between consecutive points
+            for (let i = 1; i < this.previousLocations.length; i++) {
+                const prevPoint = this.previousLocations[i - 1];
+                const currentPoint = this.previousLocations[i];
+                
+                const bearing = calculateBearing(prevPoint, currentPoint);
+                totalBearing += bearing;
+                bearingCount++;
+            }
+            
+            // Calculate average bearing
+            heading = totalBearing / bearingCount;
         }
 
         // Update the location source if it exists
@@ -47,46 +72,40 @@ const locationTracker = {
             });
         }
 
-        // Update progress if we have a track
-        this.updateProgress(map);
+        // Update progress
+        progressTracker.updateProgress(newLocation, map);
 
-        // Center map on position if we're not paused
-        if (!this.paused) {
-            map.flyTo({ 
-                center: [longitude, latitude], 
-                zoom: this.zoomLevel 
-            });
-        }
-    },
+        // Center map and rotate based on heading if we're not paused
+        if (!this.paused && !this.isAnimating) {
+            this.isAnimating = true;
 
-    updateProgress: function(map) {
-        if (!trackManager.trackPoints || trackManager.trackPoints.length === 0 || this.previousLocations.length === 0) {
-            return;
-        }
+            if (this.needsInitialZoom) {
+                // First time after unpausing - do a flyTo with zoom
+                map.flyTo({
+                    center: [longitude, latitude],
+                    zoom: this.zoomLevel,
+                    bearing: heading,
+                    duration: this.animationDuration,
+                    easing: t => t * (2 - t) // Ease out quadratic
+                });
+                this.needsInitialZoom = false;
+            } else {
+                // Regular update - just pan and rotate
+                map.panTo([longitude, latitude], {
+                    duration: this.animationDuration,
+                    easing: t => t * (2 - t)
+                });
 
-        // Find the closest track point to the current location
-        let closestIndex = 0;
-        let closestDistance = Infinity;
-        const currentLocation = this.previousLocations[this.previousLocations.length - 1];
-        
-        for (let i = 0; i < trackManager.trackPoints.length; i++) {
-            const point1 = new mapboxgl.LngLat(currentLocation.lng, currentLocation.lat);
-            const point2 = new mapboxgl.LngLat(trackManager.trackPoints[i][0], trackManager.trackPoints[i][1]);
-            const distance = point1.distanceTo(point2);
-            if (distance < closestDistance) {
-                closestDistance = distance;
-                closestIndex = i;
+                map.rotateTo(heading, {
+                    duration: this.animationDuration,
+                    easing: t => t * (2 - t)
+                });
             }
-        }
 
-        // Calculate remaining distance
-        const totalDistance = trackManager.trackDistances[trackManager.trackDistances.length - 1];
-        const remainingDistance = totalDistance - trackManager.trackDistances[closestIndex];
-
-        // Display progress
-        const progressElement = document.getElementById('progress-display');
-        if (progressElement) {
-            progressElement.textContent = `${(remainingDistance / 1000).toFixed(1)} km`;
+            // Reset animation flag after animations complete
+            setTimeout(() => {
+                this.isAnimating = false;
+            }, this.animationDuration);
         }
     },
 
@@ -109,11 +128,8 @@ const locationTracker = {
     },
 
     unpause: function(map) {
-        if (!map || typeof map.on !== 'function') {
-            return;
-        }
-
         this.paused = false;
+        this.needsInitialZoom = true;
 
         const setupLocationTracking = () => {
             // Setup location source and layer if they don't exist
