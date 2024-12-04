@@ -16,6 +16,7 @@ const locationTracker = {
     lastMapUpdateLocation: null,
     minDistanceToUpdate: 5, // minimum distance in meters
     currentLocation: null, // Store current location
+    forceNextUpdate: false, // Force update on next location after unpause
 
     // Location circle appearance
     circleRadius: 8,
@@ -44,6 +45,12 @@ const locationTracker = {
         if (this.lastMapUpdateLocation) {
             const distance = calculateDistance(this.lastMapUpdateLocation, newLocation);
             shouldUpdateMap = distance >= this.minDistanceToUpdate;
+        }
+
+        // Force update on next location after unpause
+        if (this.forceNextUpdate) {
+            shouldUpdateMap = true;
+            this.forceNextUpdate = false;
         }
 
         this.previousLocations.push(newLocation);
@@ -135,6 +142,7 @@ const locationTracker = {
 
     unpause: function(map) {
         this.paused = false;
+        this.forceNextUpdate = true;
 
         const setupLocationTracking = () => {
             // Setup location source and layer if they don't exist

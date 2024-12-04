@@ -4,7 +4,7 @@ import { calculateDistance } from './utils.js';
 // Progress tracking functionality
 const progressTracker = {
     // Configuration
-    searchBoxMeters: 200, // Size of the square search box in meters
+    searchBoxMeters: 400, // Size of the square search box in meters
 
     // Update progress along the track
     updateProgress: function(currentLocation, map) {

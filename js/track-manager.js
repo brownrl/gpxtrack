@@ -201,17 +201,13 @@ const trackManager = {
                             }, new mapboxgl.LngLatBounds(interpolatedCoordinates[0], interpolatedCoordinates[0]));
                             
                             map.fitBounds(bounds, {
-                                padding: 50,
-                                duration: 1000
+                                padding: { top: 50, bottom: 50, left: 50, right: 50 }
                             });
 
-                            // Wait for bounds animation to complete, then resume location tracking
-                            map.once('moveend', () => {
-                                // Wait 3 seconds before unpausing location tracking
-                                setTimeout(() => {
-                                    locationTracker.unpause(map);
-                                }, 3000);
-                            });
+                            // After bounds fit, wait 3 seconds then unpause location tracking
+                            setTimeout(() => {
+                                locationTracker.unpause(map);
+                            }, 3000);
 
                             // Show clear button
                             document.querySelector('.clear-button').style.display = 'inline-block';
