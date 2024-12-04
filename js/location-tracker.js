@@ -15,6 +15,7 @@ const locationTracker = {
     animationDuration: 1000, // Duration in ms for animations
     lastMapUpdateLocation: null,
     minDistanceToUpdate: 5, // minimum distance in meters
+    currentLocation: null, // Store current location
 
     // Location circle appearance
     circleRadius: 8,
@@ -36,6 +37,7 @@ const locationTracker = {
         
         // Add new location to the list
         const newLocation = { lng: longitude, lat: latitude };
+        this.currentLocation = { lat: latitude, lng: longitude }; // Store current location
         
         // Check if we should update the map
         let shouldUpdateMap = true;
@@ -107,6 +109,10 @@ const locationTracker = {
                 this.isAnimating = false;
             }, this.animationDuration);
         }
+    },
+
+    getCurrentLocation: function() {
+        return this.currentLocation;
     },
 
     pause: function(map) {

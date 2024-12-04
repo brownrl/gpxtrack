@@ -65,11 +65,28 @@
 <body>
     <div id="map"></div>
     <div id="progress-display" class="progress-display">&nbsp;</div>
-    <div class="file-picker-container">
-        <button class="file-picker-button">GPX</button>
-        <button class="clear-button" style="display: none;">Clear</button>
+    <div class="ui-controls-container">
+        <button class="gmaps-button">🗺️</button>
+        <button class="file-picker-button">📁</button>
+        <button class="clear-button" style="display: none;">❌</button>
         <input type="file" id="gpx-file" accept=".gpx" style="display: none;">
     </div>
+    <!-- Modal -->
+    <div id="gmaps-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Google Maps</h2>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div class="modal-grid">
+                <button id="open-maps-btn" class="modal-button">📍</button>
+                <button id="open-lodging-btn" class="modal-button">🛏️</button>
+                <button id="open-market-btn" class="modal-button">🍗</button>
+                <button id="open-camping-btn" class="modal-button">⛺️</button>
+                <button id="open-restaurant-btn" class="modal-button">🍽️</button>
+                <button id="open-hospital-btn" class="modal-button">❤️‍🩹</button>
+            </div>
+        </div>
+    </div>
 </body>
-
 </html>
