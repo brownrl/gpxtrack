@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Initialize location tracking
-    locationTracker.initLocationTracking(map);
+    locationTracker.unpause(map);
 
     // Initialize track handling
     trackManager.initTrackHandling(map);

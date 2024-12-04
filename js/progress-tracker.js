@@ -3,6 +3,9 @@ import { calculateDistance } from './utils.js';
 
 // Progress tracking functionality
 const progressTracker = {
+    // Configuration
+    searchBoxMeters: 200, // Size of the square search box in meters
+
     // Update progress along the track
     updateProgress: function(currentLocation, map) {
         const trackPoints = trackManager.trackPoints;
@@ -12,19 +15,44 @@ const progressTracker = {
             return;
         }
 
-        // Find the closest track point to the current location
-        let closestIndex = 0;
+        // Convert meters to rough lat/lng degrees (1 degree ≈ 111km)
+        const boxDegrees = this.searchBoxMeters / 111000;
+        
+        // Find track points within the square box
+        const nearbyPoints = [];
+        const nearbyIndices = [];
+        
+        trackPoints.forEach((point, index) => {
+            if (Math.abs(point.lat - currentLocation.lat) <= boxDegrees && 
+                Math.abs(point.lng - currentLocation.lng) <= boxDegrees) {
+                nearbyPoints.push(point);
+                nearbyIndices.push(index);
+            }
+        });
+
+        // If no nearby points found, show off-track status
+        if (nearbyPoints.length === 0) {
+            const progressElement = document.getElementById('progress-display');
+            if (progressElement) {
+                progressElement.textContent = 'Off track';
+            }
+            return {
+                closestIndex: -1,
+                remainingDistance: -1,
+                closestDistance: -1,
+                isOffTrack: true
+            };
+        }
+
+        // Find the closest track point among nearby points
+        let closestIndex = -1;
         let closestDistance = Infinity;
 
-        // Calculate distance to each track point to find closest
-        trackPoints.forEach((point, index) => {
-            const distance = calculateDistance(
-                currentLocation,
-                point  // calculateDistance handles array format conversion
-            );
+        nearbyPoints.forEach((point, arrayIndex) => {
+            const distance = calculateDistance(currentLocation, point);
             if (distance < closestDistance) {
                 closestDistance = distance;
-                closestIndex = index;
+                closestIndex = nearbyIndices[arrayIndex];
             }
         });
 
@@ -36,14 +64,14 @@ const progressTracker = {
         // Update distance display
         const progressElement = document.getElementById('progress-display');
         if (progressElement) {
-            progressElement.style.display = 'block'; // Ensure visibility
             progressElement.textContent = `${(remainingDistance / 1000).toFixed(1)} km to go`;
         }
 
         return {
             closestIndex,
             remainingDistance,
-            closestDistance
+            closestDistance,
+            isOffTrack: false
         };
     }
 };

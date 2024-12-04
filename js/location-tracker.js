@@ -1,6 +1,6 @@
 import trackManager from './track-manager.js';
 import progressTracker from './progress-tracker.js';
-import { calculateBearing } from './utils.js';
+import { calculateBearing, calculateDistance } from './utils.js';
 
 // Location tracking functionality
 const locationTracker = {
@@ -10,9 +10,11 @@ const locationTracker = {
     watchId: null,
     previousLocations: [], // Store the last locations for bearing calculation
     movementTolerance: 1, // meters
-    headingPoints: 8,     // Number of points to use for heading calculation
+    headingPoints: 5,     // Number of points to use for heading calculation
     isAnimating: false,    // Track if we're currently animating
-    animationDuration: 500, // Duration in ms for animations
+    animationDuration: 1000, // Duration in ms for animations
+    lastMapUpdateLocation: null,
+    minDistanceToUpdate: 5, // minimum distance in meters
 
     // Location circle appearance
     circleRadius: 8,
@@ -24,13 +26,9 @@ const locationTracker = {
         return this;
     },
 
-    setCircleColor: function(color) {
+    setCircleColor(color) {
         this.circleColor = color;
         return this;
-    },
-
-    initLocationTracking: function(map) {
-        this.unpause(map);
     },
 
     onLocationUpdate: function(position, map) {
@@ -38,6 +36,14 @@ const locationTracker = {
         
         // Add new location to the list
         const newLocation = { lng: longitude, lat: latitude };
+        
+        // Check if we should update the map
+        let shouldUpdateMap = true;
+        if (this.lastMapUpdateLocation) {
+            const distance = calculateDistance(this.lastMapUpdateLocation, newLocation);
+            shouldUpdateMap = distance >= this.minDistanceToUpdate;
+        }
+
         this.previousLocations.push(newLocation);
         if (this.previousLocations.length > this.headingPoints) {
             this.previousLocations.shift();
@@ -70,19 +76,22 @@ const locationTracker = {
             heading = (heading + 360) % 360;
         }
 
-        // Update the location source if it exists
-        if (map.getSource('location')) {
+        // Update the location source if it exists and we should update
+        if (map.getSource('location') && shouldUpdateMap) {
             map.getSource('location').setData({
                 type: 'Point',
                 coordinates: [longitude, latitude]
             });
+            
+            // Store this location as our last update point
+            this.lastMapUpdateLocation = newLocation;
         }
 
         // Update progress
         progressTracker.updateProgress(newLocation, map);
 
-        // Center map and rotate based on heading if we're not paused
-        if (!this.paused && !this.isAnimating) {
+        // Center map and rotate based on heading if we're not paused and we should update
+        if (!this.paused && !this.isAnimating && shouldUpdateMap) {
             this.isAnimating = true;
 
             map.easeTo({
