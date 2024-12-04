@@ -23,6 +23,17 @@ const uiControls = {
         const gmapsButton = document.querySelector('.gmaps-button');
         const closeButton = document.querySelector('.close-modal');
         
+        // Create search handler function
+        const handleSearch = (searchTerm) => {
+            const currentLocation = locationTracker.getCurrentLocation();
+            if (currentLocation) {
+                const mapsUrl = `https://www.google.com/maps/search/${searchTerm}/@${currentLocation.lat},${currentLocation.lng},13z`;
+                window.open(mapsUrl, '_blank');
+            }
+            modal.style.display = 'none';
+            resetHideTimeout();
+        };
+
         // Handle maps button click
         document.getElementById('open-maps-btn').addEventListener('click', () => {
             const currentLocation = locationTracker.getCurrentLocation();
@@ -34,25 +45,15 @@ const uiControls = {
             resetHideTimeout();
         });
 
-        // Handle all search buttons
-        const searchButtons = [
-            { id: 'open-lodging-btn', search: 'lodging' },
-            { id: 'open-market-btn', search: 'supermarket' },
-            { id: 'open-camping-btn', search: 'camping' },
-            { id: 'open-restaurant-btn', search: 'restaurant' },
-            { id: 'open-hospital-btn', search: 'hospital' }
-        ];
-
-        searchButtons.forEach(button => {
-            document.getElementById(button.id).addEventListener('click', () => {
-                const currentLocation = locationTracker.getCurrentLocation();
-                if (currentLocation) {
-                    const mapsUrl = `https://www.google.com/maps/search/${button.search}/@${currentLocation.lat},${currentLocation.lng},13z`;
-                    window.open(mapsUrl, '_blank');
-                }
-                modal.style.display = 'none';
-                resetHideTimeout();
-            });
+        // Add click handlers for all search buttons
+        [
+            ['open-lodging-btn', 'lodging'],
+            ['open-market-btn', 'supermarket'],
+            ['open-camping-btn', 'camping'],
+            ['open-restaurant-btn', 'restaurant'],
+            ['open-hospital-btn', 'hospital']
+        ].forEach(([id, search]) => {
+            document.getElementById(id).addEventListener('click', () => handleSearch(search));
         });
 
         gmapsButton.addEventListener('click', () => {
