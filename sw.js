@@ -4,8 +4,6 @@ const ASSETS_TO_CACHE = [
     '/index.php',
     '/app.js',
     '/manifest.json',
-    'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
-    'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
     'https://cdn.jsdelivr.net/npm/@mapbox/togeojson@0.16.0/togeojson.min.js'
 ];
 

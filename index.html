@@ -11,9 +11,28 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Cache-Control" content="no-store, private">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
+    <script>
+        // Only apply caching headers for production (not for gpxtrack.test)
+        if (window.location.hostname === 'gpxtrack.test') {
+            // Development - Disable all caching
+            document.createElement('meta').httpEquiv = 'Cache-Control';
+            document.createElement('meta').content = 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0';
+            document.head.appendChild(document.createElement('meta'));
+            
+            document.createElement('meta').httpEquiv = 'Pragma';
+            document.createElement('meta').content = 'no-cache';
+            document.head.appendChild(document.createElement('meta'));
+            
+            document.createElement('meta').httpEquiv = 'Expires';
+            document.createElement('meta').content = '0';
+            document.head.appendChild(document.createElement('meta'));
+        } else {
+            // Production - Enable PWA caching
+            document.createElement('meta').httpEquiv = 'Cache-Control';
+            document.createElement('meta').content = 'public, max-age=31536000';
+            document.head.appendChild(document.createElement('meta'));
+        }
+    </script>
     <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
     <title>GPX</title>
 
@@ -43,6 +62,8 @@
     <!-- App JavaScript -->
     <script>
         // Set the Mapbox access token
+        // [uphint]: This is a restricted public token
+        // github_pat: [false_positive] Mapbox public token with domain restrictions
         mapboxgl.accessToken = 'pk.eyJ1IjoiYnJvd25ybCIsImEiOiJjbTRiNDl6YTkwaDQ3MnFzZXB6djg2MmI4In0.99Yua2HSf2x1-gVX_n_rjw';
     </script>
 
@@ -54,7 +75,8 @@
 
     <!-- Service Worker Registration -->
     <script>
-        if ('serviceWorker' in navigator) {
+        // Only register service worker for production (not for gpxtrack.test)
+        if (window.location.hostname !== 'gpxtrack.test' && 'serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js')
                     .then(registration => { })
