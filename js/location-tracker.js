@@ -55,12 +55,14 @@ const locationTracker = {
     maxRotationThreshold: 120, // Maximum degrees for normal animation duration
     circleRadius: 8,
     circleColor: '#0066ff',
+    map: null, // Store map reference
 
     /**
      * Initializes location tracking on the map
      * @param {Object} map - Mapbox GL JS map instance
      */
     initLocationTracking: function(map) {
+        this.map = map; // Store map reference
         // Setup location source and layer if they don't exist
         if (!map.getSource('location')) {
             map.addSource('location', {
@@ -88,14 +90,14 @@ const locationTracker = {
 
         // Get initial position
         navigator.geolocation.getCurrentPosition(
-            (position) => this.onLocationUpdate(position, map),
+            (position) => this.onLocationUpdate(position),
             handleError,
             { enableHighAccuracy: true }
         );
 
         // Start watching position
         this.watchId = navigator.geolocation.watchPosition(
-            (position) => this.onLocationUpdate(position, map),
+            (position) => this.onLocationUpdate(position),
             handleError,
             {
                 enableHighAccuracy: true,
@@ -108,112 +110,92 @@ const locationTracker = {
     /**
      * Updates the map with new location data
      * @param {Object} position - Position object with coords
-     * @param {Object} map - Mapbox GL JS map instance
      */
-    onLocationUpdate: function(position, map) {
-        const { longitude, latitude } = position.coords;
-        
+    onLocationUpdate: function(position) {
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+
+        this.currentLocation = { lat: latitude, lng: longitude };
+
         // Add new location to the list
         const newLocation = { lng: longitude, lat: latitude };
-        this.currentLocation = { lat: latitude, lng: longitude }; // Store current location
-        
-        // For simulation, we want to update more frequently
-        let shouldUpdateMap = true;
-        if (this.lastMapUpdateLocation) {
-            const distance = calculateDistance(this.lastMapUpdateLocation, newLocation);
-            // During simulation, use a smaller threshold
-            shouldUpdateMap = distance >= 1; // 1 meter threshold for simulation
-        }
-
         this.previousLocations.push(newLocation);
         if (this.previousLocations.length > this.headingPoints) {
             this.previousLocations.shift();
         }
 
-        // Calculate heading from recent points
-        let heading = 0;
+        // Calculate heading if we have enough points
+        let heading = null;
         if (this.previousLocations.length >= 2) {
-            let validBearings = [];
-            
-            // First pass: collect valid bearings
-            for (let i = 1; i < this.previousLocations.length; i++) {
-                const prevPoint = this.previousLocations[i - 1];
-                const currentPoint = this.previousLocations[i];
-                const bearing = calculateBearing(prevPoint, currentPoint);
-                
-                if (validBearings.length === 0) {
-                    validBearings.push({ bearing, weight: i });
-                    continue;
-                }
+            const lastPoint = this.previousLocations[this.previousLocations.length - 2];
+            heading = calculateBearing(lastPoint, newLocation);
 
-                const avgBearing = validBearings.reduce((sum, b) => sum + b.bearing, 0) / validBearings.length;
-                let bearingDiff = Math.abs(bearing - avgBearing);
-                if (bearingDiff > 180) {
-                    bearingDiff = 360 - bearingDiff;
+            // Smooth heading changes
+            if (this.lastHeading !== null) {
+                const diff = Math.abs(heading - this.lastHeading);
+                if (diff > 180) {
+                    // If the difference is more than 180 degrees, we need to adjust
+                    heading = diff > 270 ? heading + 360 : heading - 360;
                 }
-
-                const distance = calculateDistance(prevPoint, currentPoint);
-                const maxAllowedDiff = Math.min(90, 45 + (distance * 10));
-                
-                if (bearingDiff <= maxAllowedDiff) {
-                    validBearings.push({ bearing, weight: i });
-                }
-            }
-            
-            if (validBearings.length > 0) {
-                let weightedBearing = 0;
-                let totalWeight = 0;
-                
-                for (const {bearing, weight} of validBearings) {
-                    weightedBearing += bearing * weight;
-                    totalWeight += weight;
-                }
-                
-                heading = weightedBearing / totalWeight;
+                heading = this.lastHeading * 0.7 + heading * 0.3;
                 heading = (heading + 360) % 360;
             }
+            this.lastHeading = heading;
         }
 
-        // Update the location source if it exists and we should update
-        if (map.getSource('location') && shouldUpdateMap) {
-            this.updateLocation(latitude, longitude);
-            this.updateMapLocationAndCenter(map, longitude, latitude, heading);
-            
-            // Store this location as our last update point
-            this.lastMapUpdateLocation = newLocation;
-        }
-
-        // Update progress
-        progressTracker.updateProgress(newLocation, map);
-    },
-
-    updateLocation: function(latitude, longitude) {
-        // Update the location dot
-        this.map.getSource('location').setData({
-            type: 'Point',
-            coordinates: [longitude, latitude]
-        });
-    },
-
-    updateMapLocationAndCenter: function(map, longitude, latitude, heading) {
-        // Animate the map movement
-        if (!this.paused && !this.isAnimating) {
-            this.isAnimating = true;
-            
-            map.easeTo({
-                center: [longitude, latitude],
-                zoom: this.zoomLevel,
-                bearing: heading,
-                duration: 1000,
-                easing: t => t * (2 - t), // Ease out quadratic
-                essential: true // This animation is considered essential for the navigation
+        // Update the location source if it exists
+        if (this.map.getSource('location')) {
+            this.map.getSource('location').setData({
+                type: 'Point',
+                coordinates: [longitude, latitude]
             });
 
-            // Reset animation flag after animation completes
-            setTimeout(() => {
-                this.isAnimating = false;
-            }, 1000);
+            // Animate the map movement
+            if (!this.paused && !this.isAnimating) {
+                this.isAnimating = true;
+                this.map.flyTo({
+                    center: [longitude, latitude],
+                    zoom: this.zoomLevel,
+                    bearing: heading || 0,
+                    duration: this.animationDuration,
+                    essential: true
+                });
+                setTimeout(() => {
+                    this.isAnimating = false;
+                }, this.animationDuration);
+            }
         }
+
+        // Update progress display
+        progressTracker.updateProgress(this.currentLocation, this.map);
+    },
+
+    /**
+     * Pauses location tracking
+     */
+    pause: function() {
+        this.paused = true;
+        if (this.watchId !== null) {
+            navigator.geolocation.clearWatch(this.watchId);
+            this.watchId = null;
+        }
+
+        // Remove the location layer and source if they exist
+        if (this.map.getLayer('location')) {
+            this.map.removeLayer('location');
+        }
+        if (this.map.getSource('location')) {
+            this.map.removeSource('location');
+        }
+    },
+
+    /**
+     * Resumes location tracking
+     */
+    unpause() {
+        this.paused = false;
+        this.forceNextUpdate = true;
+        this.initLocationTracking(this.map);
     },
 
     /**
@@ -222,90 +204,6 @@ const locationTracker = {
      */
     getCurrentLocation: function() {
         return this.currentLocation;
-    },
-
-    /**
-     * Pauses location tracking
-     * @param {Object} map - Mapbox GL JS map instance
-     */
-    pause: function(map) {
-        this.paused = true;
-
-        // Stop watching location
-        if (this.watchId !== null) {
-            navigator.geolocation.clearWatch(this.watchId);
-            this.watchId = null;
-        }
-
-        // Remove the location layer and source if they exist
-        if (map.getLayer('location')) {
-            map.removeLayer('location');
-        }
-        if (map.getSource('location')) {
-            map.removeSource('location');
-        }
-    },
-
-    /**
-     * Resumes location tracking
-     * @param {Object} map - Mapbox GL JS map instance
-     */
-    unpause: function(map) {
-        this.paused = false;
-        this.forceNextUpdate = true;
-
-        const setupLocationTracking = () => {
-            // Setup location source and layer if they don't exist
-            if (!map.getSource('location')) {
-                map.addSource('location', {
-                    type: 'geojson',
-                    data: {
-                        type: 'Point',
-                        coordinates: [0, 0]
-                    }
-                });
-                map.addLayer({
-                    id: 'location',
-                    source: 'location',
-                    type: 'circle',
-                    paint: {
-                        'circle-radius': this.circleRadius,
-                        'circle-color': this.circleColor
-                    }
-                });
-            }
-
-            // Start location tracking
-            const handleError = (error) => {
-                console.error('Location error:', error);
-            };
-
-            // Get initial position
-            navigator.geolocation.getCurrentPosition(
-                (position) => this.onLocationUpdate(position, map),
-                handleError,
-                { enableHighAccuracy: true }
-            );
-
-            // Start watching position
-            this.watchId = navigator.geolocation.watchPosition(
-                (position) => this.onLocationUpdate(position, map),
-                handleError,
-                {
-                    enableHighAccuracy: true,
-                    maximumAge: 0,
-                    timeout: 5000
-                }
-            );
-        };
-
-        // If the style is already loaded, setup tracking immediately
-        if (map.isStyleLoaded()) {
-            setupLocationTracking();
-        } else {
-            // Otherwise wait for the style to load
-            map.once('style.load', setupLocationTracking);
-        }
     },
 
     /**

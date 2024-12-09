@@ -27,12 +27,15 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // Initialize location tracking
-    locationTracker.initLocationTracking(map);
+    // Wait for map style to load before initializing components
+    map.on('style.load', () => {
+        // Initialize location tracking
+        locationTracker.initLocationTracking(map);
 
-    // Initialize UI controls
-    uiControls.initUIControls(map);
+        // Initialize UI controls
+        uiControls.initUIControls(map);
 
-    // Initialize track handling
-    trackManager.initTrackHandling(map);
+        // Initialize track handling
+        trackManager.initTrackHandling(map);
+    });
 });
