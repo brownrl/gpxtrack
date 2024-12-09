@@ -1,13 +1,32 @@
 /**
  * location-tracker.js
- * Handles all location tracking functionality including real GPS and simulated movement.
  * 
- * Key features:
- * - Tracks user's current location using device GPS
- * - Calculates heading based on movement history
- * - Updates map position and rotation based on location updates
- * - Manages location source initialization and updates
- * - Handles location data filtering and smoothing
+ * This module handles real-time GPS location tracking and map updates.
+ * It manages the user's location dot on the map, handles location updates,
+ * and provides controls for pausing/resuming tracking.
+ * 
+ * Key Features:
+ * - Real-time GPS tracking
+ * - Smooth map animations for location updates
+ * - Heading calculation based on movement
+ * - Pause/Resume functionality
+ * 
+ * Configuration Properties:
+ * @property {number} zoomLevel - Default zoom level for the map when tracking location
+ * @property {number} headingPoints - Number of points to use for calculating heading
+ * @property {number} minDistance - Minimum distance (meters) required between updates to trigger a map update
+ * @property {number} circleRadius - Size of the location dot on the map
+ * @property {string} circleColor - Color of the location dot (hex format)
+ * @property {number} minRotationThreshold - Minimum degrees of change needed to rotate map
+ * @property {number} maxRotationThreshold - Maximum degrees for normal animation duration
+ * 
+ * Important Notes:
+ * 1. The location dot styling (circleRadius, circleColor) should not be modified
+ *    as they are part of the app's visual design.
+ * 2. Core tracking functionality (GPS updates, heading calculation) should be
+ *    preserved to maintain accurate location tracking.
+ * 3. The METER_PER_DEGREE constant is used for distance calculations and
+ *    should not be changed.
  */
 
 import trackManager from './track-manager.js';
@@ -33,7 +52,7 @@ const locationTracker = {
     forceNextUpdate: false, // Force update on next location after unpause
     lastHeading: null,     // Store last heading for smoothing
     minRotationThreshold: 15, // Minimum degrees of change needed to rotate map
-    maxRotationThreshold: 120, // Maximum degrees of change for normal animation duration
+    maxRotationThreshold: 120, // Maximum degrees for normal animation duration
     circleRadius: 8,
     circleColor: '#0066ff',
 
