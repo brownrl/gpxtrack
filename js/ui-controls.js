@@ -127,6 +127,19 @@ const uiControls = {
             resetHideTimeout();
         });
 
+        // Location tracking toggle button
+        document.querySelector('.location-button').addEventListener('click', () => {
+            const locationButton = document.querySelector('.location-button');
+            if (locationTracker.isPaused()) {
+                locationTracker.unpause(this.map);
+                locationButton.classList.add('active');
+            } else {
+                locationTracker.pause(this.map);
+                locationButton.classList.remove('active');
+            }
+            resetHideTimeout();
+        });
+
         // Initialize hide timeout
         resetHideTimeout();
     },

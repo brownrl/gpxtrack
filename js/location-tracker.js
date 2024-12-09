@@ -307,6 +307,14 @@ const locationTracker = {
     setCircleColor(color) {
         this.circleColor = color;
         return this;
+    },
+
+    /**
+     * Checks if location tracking is paused
+     * @returns {boolean} True if paused, false otherwise
+     */
+    isPaused: function() {
+        return this.paused;
     }
 };
 

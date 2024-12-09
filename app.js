@@ -1,4 +1,19 @@
-// Removed centralized Mapbox access token export
+/**
+ * app.js - CORE INITIALIZATION FILE
+ * ⚠️ WARNING: This file is PINNED and should not be modified! ⚠️
+ * 
+ * This is the main entry point that handles core initialization of the application.
+ * It should only contain the essential setup code for the major components.
+ * 
+ * Any new features or UI controls should be added to their respective modules:
+ * - UI controls → ui-controls.js
+ * - Track handling → track-manager.js
+ * - Location tracking → location-tracker.js
+ * - Map configuration → map-config.js
+ * 
+ * @lastModified 2024-12-09
+ * @status PINNED
+ */
 
 import mapConfig from './js/map-config.js';
 import locationTracker from './js/location-tracker.js';
@@ -13,11 +28,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Initialize location tracking
-    locationTracker.unpause(map);
+    locationTracker.initLocationTracking(map);
+
+    // Initialize UI controls
+    uiControls.initUIControls(map);
 
     // Initialize track handling
     trackManager.initTrackHandling(map);
-
-    // Initialize UI controls with map
-    uiControls.initUIControls(map);
 });
