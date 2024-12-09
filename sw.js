@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gpx-track-v1';
+const CACHE_NAME = 'gpx-track-v2';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -11,15 +11,9 @@ const ASSETS_TO_CACHE = [
     '/js/track-manager.js',
     '/js/ui-controls.js',
     '/js/utils.js',
-    '/icons/icon-72x72.png',
-    '/icons/icon-96x96.png',
-    '/icons/icon-128x128.png',
-    '/icons/icon-144x144.png',
-    '/icons/icon-152x152.png',
     '/icons/icon-192x192.png',
-    '/icons/icon-384x384.png',
     '/icons/icon-512x512.png',
-    'https://cdn.jsdelivr.net/npm/@mapbox/togeojson@0.16.0/togeojson.min.js'
+    '/libs/togeojson.min.js'
 ];
 
 // Install event - cache assets

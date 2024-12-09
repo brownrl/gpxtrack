@@ -15,12 +15,14 @@ import locationTracker from './location-tracker.js';
 const uiControls = {
     // Configuration
     hideTimeoutMs: 3000, // Time in milliseconds before UI controls fade out
+    map: null, // Store map reference
 
     /**
      * Initializes all UI controls and their event listeners
      * @param {Object} map - Mapbox GL JS map instance
      */
     initUIControls: function(map) {
+        this.map = map; // Store map reference
         const buttonsContainer = document.querySelector('.ui-controls-container');
         let hideTimeout;
 
@@ -121,13 +123,20 @@ const uiControls = {
 
         // Clear button click handler
         document.querySelector('.clear-button').addEventListener('click', () => {
-            trackManager.clearTrack(map);
+            this.clearTrack();
             resetHideTimeout();
         });
 
         // Initialize hide timeout
         resetHideTimeout();
-    }
+    },
+
+    /**
+     * Clears the current track from the map
+     */
+    clearTrack: function() {
+        trackManager.clearTrack(this.map);
+    },
 };
 
 export default uiControls;

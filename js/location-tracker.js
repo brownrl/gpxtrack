@@ -93,7 +93,6 @@ const locationTracker = {
      */
     onLocationUpdate: function(position, map) {
         const { longitude, latitude } = position.coords;
-        console.log('Location update:', latitude, longitude);
         
         // Add new location to the list
         const newLocation = { lng: longitude, lat: latitude };
@@ -158,32 +157,8 @@ const locationTracker = {
 
         // Update the location source if it exists and we should update
         if (map.getSource('location') && shouldUpdateMap) {
-            console.log('Updating map location and center');
-            
-            // Update the location dot
-            map.getSource('location').setData({
-                type: 'Point',
-                coordinates: [longitude, latitude]
-            });
-
-            // Animate the map movement
-            if (!this.paused && !this.isAnimating) {
-                this.isAnimating = true;
-                
-                map.easeTo({
-                    center: [longitude, latitude],
-                    zoom: this.zoomLevel,
-                    bearing: heading,
-                    duration: 1000,
-                    easing: t => t * (2 - t), // Ease out quadratic
-                    essential: true // This animation is considered essential for the navigation
-                });
-
-                // Reset animation flag after animation completes
-                setTimeout(() => {
-                    this.isAnimating = false;
-                }, 1000);
-            }
+            this.updateLocation(latitude, longitude);
+            this.updateMapLocationAndCenter(map, longitude, latitude, heading);
             
             // Store this location as our last update point
             this.lastMapUpdateLocation = newLocation;
@@ -191,6 +166,35 @@ const locationTracker = {
 
         // Update progress
         progressTracker.updateProgress(newLocation, map);
+    },
+
+    updateLocation: function(latitude, longitude) {
+        // Update the location dot
+        this.map.getSource('location').setData({
+            type: 'Point',
+            coordinates: [longitude, latitude]
+        });
+    },
+
+    updateMapLocationAndCenter: function(map, longitude, latitude, heading) {
+        // Animate the map movement
+        if (!this.paused && !this.isAnimating) {
+            this.isAnimating = true;
+            
+            map.easeTo({
+                center: [longitude, latitude],
+                zoom: this.zoomLevel,
+                bearing: heading,
+                duration: 1000,
+                easing: t => t * (2 - t), // Ease out quadratic
+                essential: true // This animation is considered essential for the navigation
+            });
+
+            // Reset animation flag after animation completes
+            setTimeout(() => {
+                this.isAnimating = false;
+            }, 1000);
+        }
     },
 
     /**

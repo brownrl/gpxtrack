@@ -20,7 +20,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize UI controls with map
     uiControls.initUIControls(map);
-
-    // Ensure map is passed correctly to clearTrack
-    uiControls.clearTrack = () => trackManager.clearTrack(map);
 });
