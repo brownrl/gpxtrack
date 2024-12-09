@@ -20,7 +20,7 @@ const uiControls = {
 
         // Show/hide clear button functions
         this.showClearButton = function() {
-            document.querySelector('.clear-button').style.display = 'inline-block';
+            document.querySelector('.clear-button').style.display = 'flex';
             resetHideTimeout();
         };
 
@@ -29,9 +29,8 @@ const uiControls = {
         };
 
         // Modal controls
-        const modal = document.getElementById('gmaps-modal');
+        const drawerButtons = document.querySelector('.drawer-buttons');
         const gmapsButton = document.querySelector('.gmaps-button');
-        const closeButton = document.querySelector('.close-modal');
         
         // Create search handler function
         const handleSearch = (searchTerm) => {
@@ -40,7 +39,7 @@ const uiControls = {
                 const mapsUrl = `https://www.google.com/maps/search/${searchTerm}/@${currentLocation.lat},${currentLocation.lng},13z`;
                 window.open(mapsUrl, '_blank');
             }
-            modal.style.display = 'none';
+            drawerButtons.classList.remove('expanded');
             resetHideTimeout();
         };
 
@@ -51,7 +50,7 @@ const uiControls = {
                 const mapsUrl = `https://www.google.com/maps?q=${currentLocation.lat},${currentLocation.lng}`;
                 window.open(mapsUrl, '_blank');
             }
-            modal.style.display = 'none';
+            drawerButtons.classList.remove('expanded');
             resetHideTimeout();
         });
 
@@ -67,20 +66,16 @@ const uiControls = {
         });
 
         gmapsButton.addEventListener('click', () => {
-            modal.style.display = 'block';
-            // Don't auto-hide controls when modal is open
+            drawerButtons.classList.toggle('expanded');
+            // Don't auto-hide controls when drawer is open
             clearTimeout(hideTimeout);
             buttonsContainer.style.opacity = '1';
         });
 
-        closeButton.addEventListener('click', () => {
-            modal.style.display = 'none';
-            resetHideTimeout();
-        });
-
-        window.addEventListener('click', (event) => {
-            if (event.target === modal) {
-                modal.style.display = 'none';
+        // Close drawer when clicking outside
+        document.addEventListener('click', (event) => {
+            if (!event.target.closest('.gmaps-drawer')) {
+                drawerButtons.classList.remove('expanded');
                 resetHideTimeout();
             }
         });
