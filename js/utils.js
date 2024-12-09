@@ -6,15 +6,32 @@
  * - Geographic calculations (distance, bearing)
  * - Unit conversions
  * - Coordinate transformations
+ * 
+ * Input formats supported:
+ * 1. Array format: [longitude, latitude]
+ * 2. Object format: {lng: longitude, lat: latitude}
  */
 
 /**
  * Calculates the bearing between two points
- * @param {Array} start - Starting point [lon, lat]
- * @param {Array} end - Ending point [lon, lat]
- * @returns {number} Bearing in degrees
+ * @param {Array|Object} start - Starting point as either:
+ *                              - Array: [longitude, latitude]
+ *                              - Object: {lng: longitude, lat: latitude}
+ * @param {Array|Object} end - Ending point in same format as start
+ * @returns {number} Bearing in degrees (0-360)
+ * @example
+ * // Array format
+ * calculateBearing([0, 0], [1, 1])
+ * // Object format
+ * calculateBearing({lng: 0, lat: 0}, {lng: 1, lat: 1})
  */
-export function calculateBearing([lon1, lat1], [lon2, lat2]) {
+export function calculateBearing(start, end) {
+    // Handle both array and object formats
+    const lon1 = Array.isArray(start) ? start[0] : start.lng;
+    const lat1 = Array.isArray(start) ? start[1] : start.lat;
+    const lon2 = Array.isArray(end) ? end[0] : end.lng;
+    const lat2 = Array.isArray(end) ? end[1] : end.lat;
+
     // Convert to radians
     const startLat = lat1 * Math.PI / 180;
     const startLng = lon1 * Math.PI / 180;
@@ -32,11 +49,24 @@ export function calculateBearing([lon1, lat1], [lon2, lat2]) {
 
 /**
  * Calculates the distance between two points using the Haversine formula
- * @param {Array} start - Starting point [lon, lat]
- * @param {Array} end - Ending point [lon, lat]
+ * @param {Array|Object} start - Starting point as either:
+ *                              - Array: [longitude, latitude]
+ *                              - Object: {lng: longitude, lat: latitude}
+ * @param {Array|Object} end - Ending point in same format as start
  * @returns {number} Distance in meters
+ * @example
+ * // Array format
+ * calculateDistance([0, 0], [1, 1])
+ * // Object format
+ * calculateDistance({lng: 0, lat: 0}, {lng: 1, lat: 1})
  */
-export function calculateDistance([lon1, lat1], [lon2, lat2]) {
+export function calculateDistance(start, end) {
+    // Handle both array and object formats
+    const lon1 = Array.isArray(start) ? start[0] : start.lng;
+    const lat1 = Array.isArray(start) ? start[1] : start.lat;
+    const lon2 = Array.isArray(end) ? end[0] : end.lng;
+    const lat2 = Array.isArray(end) ? end[1] : end.lat;
+
     const R = 6371e3; // Earth's radius in meters
     const φ1 = lat1 * Math.PI / 180;
     const φ2 = lat2 * Math.PI / 180;
