@@ -10,15 +10,16 @@ const locationTracker = {
     watchId: null,
     previousLocations: [], // Store the last locations for bearing calculation
     movementTolerance: 1, // meters
-    headingPoints: 5,     // Number of points to use for heading calculation
+    headingPoints: 10,     // Number of points to use for heading calculation
     isAnimating: false,    // Track if we're currently animating
     animationDuration: 1000, // Duration in ms for animations
     lastMapUpdateLocation: null,
     minDistanceToUpdate: 5, // minimum distance in meters
     currentLocation: null, // Store current location
     forceNextUpdate: false, // Force update on next location after unpause
-
-    // Location circle appearance
+    lastHeading: null,     // Store last heading for smoothing
+    minRotationThreshold: 15, // Minimum degrees of change needed to rotate map
+    maxRotationThreshold: 120, // Maximum degrees of change for normal animation duration
     circleRadius: 8,
     circleColor: '#0066ff',
 
@@ -35,22 +36,18 @@ const locationTracker = {
 
     onLocationUpdate: function(position, map) {
         const { longitude, latitude } = position.coords;
+        console.log('Location update:', latitude, longitude);
         
         // Add new location to the list
         const newLocation = { lng: longitude, lat: latitude };
         this.currentLocation = { lat: latitude, lng: longitude }; // Store current location
         
-        // Check if we should update the map
+        // For simulation, we want to update more frequently
         let shouldUpdateMap = true;
         if (this.lastMapUpdateLocation) {
             const distance = calculateDistance(this.lastMapUpdateLocation, newLocation);
-            shouldUpdateMap = distance >= this.minDistanceToUpdate;
-        }
-
-        // Force update on next location after unpause
-        if (this.forceNextUpdate) {
-            shouldUpdateMap = true;
-            this.forceNextUpdate = false;
+            // During simulation, use a smaller threshold
+            shouldUpdateMap = distance >= 1; // 1 meter threshold for simulation
         }
 
         this.previousLocations.push(newLocation);
@@ -58,39 +55,78 @@ const locationTracker = {
             this.previousLocations.shift();
         }
 
-        // Calculate average heading from recent points
+        // Calculate heading from recent points
         let heading = 0;
         if (this.previousLocations.length >= 2) {
-            let weightedBearing = 0;
-            let totalWeight = 0;
+            let validBearings = [];
             
-            // Calculate weighted bearings between consecutive points
-            // More recent points get higher weights
+            // First pass: collect valid bearings
             for (let i = 1; i < this.previousLocations.length; i++) {
                 const prevPoint = this.previousLocations[i - 1];
                 const currentPoint = this.previousLocations[i];
-                
                 const bearing = calculateBearing(prevPoint, currentPoint);
                 
-                // Weight increases linearly for more recent points
-                const weight = i;
-                weightedBearing += bearing * weight;
-                totalWeight += weight;
+                if (validBearings.length === 0) {
+                    validBearings.push({ bearing, weight: i });
+                    continue;
+                }
+
+                const avgBearing = validBearings.reduce((sum, b) => sum + b.bearing, 0) / validBearings.length;
+                let bearingDiff = Math.abs(bearing - avgBearing);
+                if (bearingDiff > 180) {
+                    bearingDiff = 360 - bearingDiff;
+                }
+
+                const distance = calculateDistance(prevPoint, currentPoint);
+                const maxAllowedDiff = Math.min(90, 45 + (distance * 10));
+                
+                if (bearingDiff <= maxAllowedDiff) {
+                    validBearings.push({ bearing, weight: i });
+                }
             }
             
-            // Calculate weighted average bearing
-            heading = weightedBearing / totalWeight;
-
-            // Normalize heading to 0-360 range
-            heading = (heading + 360) % 360;
+            if (validBearings.length > 0) {
+                let weightedBearing = 0;
+                let totalWeight = 0;
+                
+                for (const {bearing, weight} of validBearings) {
+                    weightedBearing += bearing * weight;
+                    totalWeight += weight;
+                }
+                
+                heading = weightedBearing / totalWeight;
+                heading = (heading + 360) % 360;
+            }
         }
 
         // Update the location source if it exists and we should update
         if (map.getSource('location') && shouldUpdateMap) {
+            console.log('Updating map location and center');
+            
+            // Update the location dot
             map.getSource('location').setData({
                 type: 'Point',
                 coordinates: [longitude, latitude]
             });
+
+            // Animate the map movement
+            if (!this.paused && !this.isAnimating) {
+                this.isAnimating = true;
+                
+                map.easeTo({
+                    center: [longitude, latitude],
+                    zoom: this.zoomLevel,
+                    bearing: heading,
+                    duration: 1000,
+                    easing: t => t * (2 - t), // Ease out quadratic
+                    essential: true // This animation is considered essential for the navigation
+                });
+
+                // Reset animation flag after animation completes
+                setTimeout(() => {
+                    this.isAnimating = false;
+                }, 1000);
+            }
             
             // Store this location as our last update point
             this.lastMapUpdateLocation = newLocation;
@@ -98,24 +134,6 @@ const locationTracker = {
 
         // Update progress
         progressTracker.updateProgress(newLocation, map);
-
-        // Center map and rotate based on heading if we're not paused and we should update
-        if (!this.paused && !this.isAnimating && shouldUpdateMap) {
-            this.isAnimating = true;
-
-            map.easeTo({
-                center: [longitude, latitude],
-                zoom: this.zoomLevel,
-                bearing: heading,
-                duration: this.animationDuration,
-                easing: t => t * (2 - t) // Ease out quadratic
-            });
-
-            // Reset animation flag after animations complete
-            setTimeout(() => {
-                this.isAnimating = false;
-            }, this.animationDuration);
-        }
     },
 
     getCurrentLocation: function() {

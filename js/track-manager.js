@@ -1,23 +1,20 @@
 import locationTracker from './location-tracker.js';
 import { calculateBearing, calculateDistance } from './utils.js';
+import progressTracker from './progress-tracker.js';
+import uiControls from './ui-controls.js';
 
 // Track management functionality
 const trackManager = {
     // Default properties for the track line and points
-    trackLineColor: '#0066ff', // Blue
+    trackLineColor: '#ff0000', // red
     trackLineWeight: 4,
-    trackPointColor: '#0066ff', // Blue
-    trackPointRadius: 5,
-    trackPointWeight: 2,
     interpolationDistance: 50, // meters
 
     // Configuration for direction indicators
     arrowConfig: {
-        width: 16,
+        width: 24,
         height: 24,
-        color: '#AAAAAA',  // Brighter color
-        indentFactor: 0.7,  // How deep the bottom indent goes (0-1)
-        spacing: 200,       // Distance between arrows in pixels
+        color: '#FFFFFF',  // Brighter color
         frequency: 4        // Draw arrow every Nth point
     },
 
@@ -34,25 +31,18 @@ const trackManager = {
         canvas.height = cfg.height;
         const ctx = canvas.getContext('2d');
 
-        // Clear background to transparent
+        // Clear background
         ctx.clearRect(0, 0, cfg.width, cfg.height);
 
-        // Draw a more arrow-like triangle
-        ctx.beginPath();
-        ctx.moveTo(cfg.width/2, 2);                    // Top point
-        ctx.lineTo(cfg.width-2, cfg.height-2);         // Bottom right
-        ctx.lineTo(cfg.width/2, cfg.height*cfg.indentFactor);  // Bottom middle indent
-        ctx.lineTo(2, cfg.height-2);                   // Bottom left
-        ctx.closePath();
-
+        // Draw the ^ character
         ctx.fillStyle = cfg.color;
-        ctx.fill();
+        ctx.font = `${Math.floor(cfg.width * 0.8)}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('^', cfg.width/2, cfg.height/2);
 
         return ctx.getImageData(0, 0, cfg.width, cfg.height);
     },
-
-    // Calculate distance between two points using Haversine formula
-    calculateDistance: calculateDistance,
 
     // Interpolate a point at a specific distance along a line segment
     interpolatePoint: function(point1, point2, fraction) {
@@ -76,7 +66,7 @@ const trackManager = {
             
             interpolatedPoints.push(point1);
             
-            const segmentDistance = this.calculateDistance(point1, point2);
+            const segmentDistance = calculateDistance(point1, point2);
             if (segmentDistance > this.interpolationDistance) {
                 // Calculate how many points we need to add
                 const numPoints = Math.floor(segmentDistance / this.interpolationDistance);
@@ -153,10 +143,25 @@ const trackManager = {
                                 }
                             };
 
-                            // Create direction points with bearings
+                            // Add track line source and layer first
+                            map.addSource('track', {
+                                'type': 'geojson',
+                                'data': this.trackLine
+                            });
+                            map.addLayer({
+                                'id': 'track',
+                                'type': 'line',
+                                'source': 'track',
+                                'paint': {
+                                    'line-color': this.trackLineColor,
+                                    'line-width': this.trackLineWeight
+                                }
+                            });
+
+                            // Then add direction points with bearings
                             const directionPoints = this.createDirectionPoints(interpolatedCoordinates);
 
-                            // Add arrow image to map
+                            // Add arrow image and direction layer on top
                             map.addImage('direction-arrow', this.createArrowImage());
                             map.addSource('track-directions', {
                                 type: 'geojson',
@@ -173,21 +178,6 @@ const trackManager = {
                                     'icon-rotation-alignment': 'map',
                                     'icon-allow-overlap': true,
                                     'icon-ignore-placement': true
-                                }
-                            }); // Add as topmost layer
-
-                            // Add track line source and layer
-                            map.addSource('track', {
-                                'type': 'geojson',
-                                'data': this.trackLine
-                            });
-                            map.addLayer({
-                                'id': 'track',
-                                'type': 'line',
-                                'source': 'track',
-                                'paint': {
-                                    'line-color': '#FF0000',
-                                    'line-width': 3
                                 }
                             });
 
@@ -209,11 +199,9 @@ const trackManager = {
                                 locationTracker.unpause(map);
                             }, 3000);
 
-                            // Show clear button
-                            document.querySelector('.clear-button').style.display = 'inline-block';
-
-                            // Show progress display when a track is loaded
-                            document.getElementById('progress-display').style.display = 'block';
+                            // Enable UI controls and progress display
+                            uiControls.showClearButton();
+                            progressTracker.showProgressDisplay();
                         }
                     }
                 };
@@ -253,13 +241,10 @@ const trackManager = {
         this.trackDistances = [];
 
         // Hide clear button
-        document.querySelector('.clear-button').style.display = 'none';
+        uiControls.hideClearButton();
 
         // Hide progress display when clearing the track
-        const progressElement = document.getElementById('progress-display');
-        if (progressElement) {
-            progressElement.textContent = '';
-        }
+        progressTracker.hideProgressDisplay();
     },
 
     // Create direction points with bearings

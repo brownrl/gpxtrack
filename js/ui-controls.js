@@ -18,6 +18,16 @@ const uiControls = {
             }, this.hideTimeoutMs);
         };
 
+        // Show/hide clear button functions
+        this.showClearButton = function() {
+            document.querySelector('.clear-button').style.display = 'inline-block';
+            resetHideTimeout();
+        };
+
+        this.hideClearButton = function() {
+            document.querySelector('.clear-button').style.display = 'none';
+        };
+
         // Modal controls
         const modal = document.getElementById('gmaps-modal');
         const gmapsButton = document.querySelector('.gmaps-button');

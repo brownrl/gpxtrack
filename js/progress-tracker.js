@@ -3,6 +3,19 @@ import { calculateDistance } from './utils.js';
 
 // Progress tracking functionality
 const progressTracker = {
+    // Show/hide progress display
+    showProgressDisplay: function() {
+        document.getElementById('progress-display').style.display = 'block';
+    },
+
+    hideProgressDisplay: function() {
+        const progressElement = document.getElementById('progress-display');
+        if (progressElement) {
+            progressElement.style.display = 'none';
+            progressElement.textContent = '';
+        }
+    },
+
     // Update progress along the track
     updateProgress: function(currentLocation, map) {
         const trackPoints = trackManager.trackPoints;
