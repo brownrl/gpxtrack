@@ -1,9 +1,23 @@
+/**
+ * track-manager.js
+ * Manages GPX track loading, display, and interaction.
+ * 
+ * Key features:
+ * - Loads and parses GPX files
+ * - Displays tracks on the map
+ * - Manages track styling and visibility
+ * - Handles track clearing and updates
+ * - Calculates track statistics (distance, etc.)
+ */
+
 import locationTracker from './location-tracker.js';
 import { calculateBearing, calculateDistance } from './utils.js';
 import progressTracker from './progress-tracker.js';
 import uiControls from './ui-controls.js';
 
-// Track management functionality
+/**
+ * Track management functionality
+ */
 const trackManager = {
     // Default properties for the track line and points
     trackLineColor: '#ff0000', // red
@@ -23,7 +37,10 @@ const trackManager = {
     trackLine: null,
     directionMarkers: [],
 
-    // Create arrow image for direction indicators
+    /**
+     * Creates an arrow image for direction indicators
+     * @returns {ImageData} Arrow image data
+     */
     createArrowImage: function() {
         const cfg = this.arrowConfig;
         const canvas = document.createElement('canvas');
@@ -44,7 +61,13 @@ const trackManager = {
         return ctx.getImageData(0, 0, cfg.width, cfg.height);
     },
 
-    // Interpolate a point at a specific distance along a line segment
+    /**
+     * Interpolates a point at a specific distance along a line segment
+     * @param {Array} point1 - Starting point coordinates [lon, lat]
+     * @param {Array} point2 - Ending point coordinates [lon, lat]
+     * @param {Number} fraction - Fraction of the distance to interpolate
+     * @returns {Array} Interpolated point coordinates [lon, lat]
+     */
     interpolatePoint: function(point1, point2, fraction) {
         const [lon1, lat1] = point1;
         const [lon2, lat2] = point2;
@@ -56,7 +79,11 @@ const trackManager = {
         return [lon, lat];
     },
 
-    // Add interpolated points to make sure there's a point every X meters
+    /**
+     * Adds interpolated points to make sure there's a point every X meters
+     * @param {Array} coordinates - Array of track coordinates
+     * @returns {Array} Interpolated track coordinates
+     */
     interpolateTrackPoints: function(coordinates) {
         const interpolatedPoints = [];
         
@@ -85,7 +112,9 @@ const trackManager = {
         return interpolatedPoints;
     },
 
-    // Calculate cumulative distances for the track
+    /**
+     * Calculates cumulative distances for the track
+     */
     calculateTrackDistances: function() {
         this.trackDistances = [0];  // First point starts at 0
         let cumulativeDistance = 0;
@@ -100,7 +129,12 @@ const trackManager = {
         }
     },
 
-    // Initialize track handling
+    /**
+     * Initializes track handling functionality
+     * @param {Object} map - Mapbox GL JS map instance
+     * @param {Object} startIcon - Start icon
+     * @param {Object} endIcon - End icon
+     */
     initTrackHandling: function(map, startIcon, endIcon) {
         const fileInput = document.getElementById('gpx-file');
         fileInput.addEventListener('change', (e) => {
@@ -210,7 +244,10 @@ const trackManager = {
         });
     },
 
-    // Function to clear the track
+    /**
+     * Clears the current track from the map
+     * @param {Object} map - Mapbox GL JS map instance
+     */
     clearTrack: function(map) {
         if (!map) return;
 
@@ -247,7 +284,11 @@ const trackManager = {
         progressTracker.hideProgressDisplay();
     },
 
-    // Create direction points with bearings
+    /**
+     * Creates direction points with bearings
+     * @param {Array} coordinates - Array of track coordinates
+     * @returns {Object} Direction points GeoJSON
+     */
     createDirectionPoints: function(coordinates) {
         return {
             type: 'FeatureCollection',

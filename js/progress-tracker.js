@@ -1,13 +1,33 @@
+/**
+ * progress-tracker.js
+ * Tracks and displays user progress along the GPX track.
+ * 
+ * Key features:
+ * - Calculates distance along track
+ * - Updates progress display
+ * - Manages progress display visibility
+ * - Formats progress information
+ */
+
 import trackManager from './track-manager.js';
 import { calculateDistance } from './utils.js';
 
-// Progress tracking functionality
 const progressTracker = {
-    // Show/hide progress display
+    // Configuration
+    progressDisplay: null,
+    lastProgress: 0,
+    updateThreshold: 10, // meters
+
+    /**
+     * Shows the progress display
+     */
     showProgressDisplay: function() {
         document.getElementById('progress-display').style.display = 'block';
     },
 
+    /**
+     * Hides the progress display
+     */
     hideProgressDisplay: function() {
         const progressElement = document.getElementById('progress-display');
         if (progressElement) {
@@ -16,7 +36,11 @@ const progressTracker = {
         }
     },
 
-    // Update progress along the track
+    /**
+     * Updates the progress display with new location
+     * @param {Object} currentLocation - Current location object with lat/lng
+     * @param {Object} map - Mapbox GL JS map instance
+     */
     updateProgress: function(currentLocation, map) {
         const trackPoints = trackManager.trackPoints;
         const trackDistances = trackManager.trackDistances;
@@ -54,6 +78,15 @@ const progressTracker = {
             closestDistance,
             isOffTrack: false
         };
+    },
+
+    /**
+     * Formats distance for display
+     * @param {number} meters - Distance in meters
+     * @returns {string} Formatted distance string
+     */
+    formatDistance: function(meters) {
+        return `${(meters / 1000).toFixed(1)} km`;
     }
 };
 

@@ -1,15 +1,33 @@
+/**
+ * ui-controls.js
+ * Manages all UI controls and their interactions in the application.
+ * 
+ * Key features:
+ * - Handles file picker for GPX track loading
+ * - Manages the Google Maps integration drawer
+ * - Controls visibility of UI elements
+ * - Manages auto-hide behavior for UI controls
+ */
+
 import trackManager from './track-manager.js';
 import locationTracker from './location-tracker.js';
 
-// UI controls and event listeners
 const uiControls = {
     // Configuration
     hideTimeoutMs: 3000, // Time in milliseconds before UI controls fade out
 
+    /**
+     * Initializes all UI controls and their event listeners
+     * @param {Object} map - Mapbox GL JS map instance
+     */
     initUIControls: function(map) {
         const buttonsContainer = document.querySelector('.ui-controls-container');
         let hideTimeout;
 
+        /**
+         * Resets the auto-hide timeout for UI controls
+         * Makes controls visible and sets timeout to hide them
+         */
         const resetHideTimeout = () => {
             clearTimeout(hideTimeout);
             buttonsContainer.style.opacity = '1';
@@ -18,21 +36,30 @@ const uiControls = {
             }, this.hideTimeoutMs);
         };
 
-        // Show/hide clear button functions
+        /**
+         * Shows the clear button and resets hide timeout
+         */
         this.showClearButton = function() {
             document.querySelector('.clear-button').style.display = 'flex';
             resetHideTimeout();
         };
 
+        /**
+         * Hides the clear button
+         */
         this.hideClearButton = function() {
             document.querySelector('.clear-button').style.display = 'none';
         };
 
-        // Modal controls
+        // Initialize Google Maps drawer controls
         const drawerButtons = document.querySelector('.drawer-buttons');
         const gmapsButton = document.querySelector('.gmaps-button');
         
-        // Create search handler function
+        /**
+         * Handles search requests to Google Maps
+         * Opens Google Maps in a new tab with the search term
+         * @param {string} searchTerm - Term to search for in Google Maps
+         */
         const handleSearch = (searchTerm) => {
             const currentLocation = locationTracker.getCurrentLocation();
             if (currentLocation) {

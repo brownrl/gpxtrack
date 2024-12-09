@@ -1,8 +1,22 @@
+/**
+ * location-tracker.js
+ * Handles all location tracking functionality including real GPS and simulated movement.
+ * 
+ * Key features:
+ * - Tracks user's current location using device GPS
+ * - Calculates heading based on movement history
+ * - Updates map position and rotation based on location updates
+ * - Manages location source initialization and updates
+ * - Handles location data filtering and smoothing
+ */
+
 import trackManager from './track-manager.js';
 import progressTracker from './progress-tracker.js';
 import { calculateBearing, calculateDistance } from './utils.js';
 
-// Location tracking functionality
+/**
+ * Location tracking functionality
+ */
 const locationTracker = {
     // Configuration
     paused: false,
@@ -23,17 +37,60 @@ const locationTracker = {
     circleRadius: 8,
     circleColor: '#0066ff',
 
-    // Methods to update circle appearance
-    setCircleRadius: function(radius) {
-        this.circleRadius = radius;
-        return this;
+    /**
+     * Initializes location tracking on the map
+     * @param {Object} map - Mapbox GL JS map instance
+     */
+    initLocationTracking: function(map) {
+        // Setup location source and layer if they don't exist
+        if (!map.getSource('location')) {
+            map.addSource('location', {
+                type: 'geojson',
+                data: {
+                    type: 'Point',
+                    coordinates: [0, 0]
+                }
+            });
+            map.addLayer({
+                id: 'location',
+                source: 'location',
+                type: 'circle',
+                paint: {
+                    'circle-radius': this.circleRadius,
+                    'circle-color': this.circleColor
+                }
+            });
+        }
+
+        // Start location tracking
+        const handleError = (error) => {
+            console.error('Location error:', error);
+        };
+
+        // Get initial position
+        navigator.geolocation.getCurrentPosition(
+            (position) => this.onLocationUpdate(position, map),
+            handleError,
+            { enableHighAccuracy: true }
+        );
+
+        // Start watching position
+        this.watchId = navigator.geolocation.watchPosition(
+            (position) => this.onLocationUpdate(position, map),
+            handleError,
+            {
+                enableHighAccuracy: true,
+                maximumAge: 0,
+                timeout: 5000
+            }
+        );
     },
 
-    setCircleColor(color) {
-        this.circleColor = color;
-        return this;
-    },
-
+    /**
+     * Updates the map with new location data
+     * @param {Object} position - Position object with coords
+     * @param {Object} map - Mapbox GL JS map instance
+     */
     onLocationUpdate: function(position, map) {
         const { longitude, latitude } = position.coords;
         console.log('Location update:', latitude, longitude);
@@ -136,10 +193,18 @@ const locationTracker = {
         progressTracker.updateProgress(newLocation, map);
     },
 
+    /**
+     * Gets the current location
+     * @returns {Object|null} Location object with lat/lng or null if not available
+     */
     getCurrentLocation: function() {
         return this.currentLocation;
     },
 
+    /**
+     * Pauses location tracking
+     * @param {Object} map - Mapbox GL JS map instance
+     */
     pause: function(map) {
         this.paused = true;
 
@@ -158,6 +223,10 @@ const locationTracker = {
         }
     },
 
+    /**
+     * Resumes location tracking
+     * @param {Object} map - Mapbox GL JS map instance
+     */
     unpause: function(map) {
         this.paused = false;
         this.forceNextUpdate = true;
@@ -214,6 +283,26 @@ const locationTracker = {
             // Otherwise wait for the style to load
             map.once('style.load', setupLocationTracking);
         }
+    },
+
+    /**
+     * Sets the circle radius
+     * @param {number} radius - Radius of the circle
+     * @returns {Object} this
+     */
+    setCircleRadius: function(radius) {
+        this.circleRadius = radius;
+        return this;
+    },
+
+    /**
+     * Sets the circle color
+     * @param {string} color - Color of the circle
+     * @returns {Object} this
+     */
+    setCircleColor(color) {
+        this.circleColor = color;
+        return this;
     }
 };
 
