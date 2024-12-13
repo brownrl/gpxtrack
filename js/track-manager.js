@@ -8,6 +8,7 @@ const trackManager = {
     trackLineColor: '#ff0000', // red
     trackLineWeight: 4,
     interpolationDistance: 50, // meters
+    locationTrackerResumeDelay: 5000, // milliseconds
     app: null, // Reference to the app mediator
 
     // Configuration for direction indicators
@@ -29,7 +30,187 @@ const trackManager = {
      */
     init(app) {
         this.app = app;
-        this.initTrackHandling();
+        this.setupFileInput();
+    },
+
+    /**
+     * Sets up the GPX file input handler
+     */
+    setupFileInput() {
+        const fileInput = document.getElementById('gpx-file');
+        fileInput.addEventListener('change', (e) => this.handleFileSelection(e));
+    },
+
+    /**
+     * Handles GPX file selection
+     * @param {Event} e - File input change event
+     */
+    async handleFileSelection(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const fileInput = e.target;
+        fileInput.value = ''; // Reset file input
+
+        try {
+            const gpxContent = await this.readGPXFile(file);
+            await this.processGPXTrack(gpxContent);
+        } catch (error) {
+            console.error('Error processing GPX file:', error);
+        }
+    },
+
+    /**
+     * Reads a GPX file and returns its content
+     * @param {File} file - GPX file to read
+     * @returns {Promise<string>} File content
+     */
+    readGPXFile(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = e => resolve(e.target.result);
+            reader.onerror = e => reject(e);
+            reader.readAsText(file);
+        });
+    },
+
+    /**
+     * Processes GPX track data and updates the map
+     * @param {string} gpxContent - GPX file content
+     */
+    async processGPXTrack(gpxContent) {
+        this.clearTrack();
+
+        // Parse GPX to GeoJSON
+        const gpx = new DOMParser().parseFromString(gpxContent, 'text/xml');
+        const converted = toGeoJSON.gpx(gpx);
+
+        if (!converted.features.length) return;
+
+        const coordinates = converted.features[0].geometry.coordinates;
+        if (!coordinates.length) return;
+
+        // Process track data
+        const interpolatedCoordinates = this.interpolateTrackPoints(coordinates);
+        this.trackPoints = interpolatedCoordinates;
+        this.calculateTrackDistances();
+
+        // Update map layers
+        await this.updateMapLayers(interpolatedCoordinates);
+        
+        // Update UI
+        this.updateUI();
+    },
+
+    /**
+     * Updates map layers with track data
+     * @param {Array} coordinates - Track coordinates
+     */
+    async updateMapLayers(coordinates) {
+        const map = this.app.map().getInstance();
+        
+        // Create track line
+        this.trackLine = {
+            'type': 'Feature',
+            'geometry': {
+                'type': 'LineString',
+                'coordinates': coordinates
+            }
+        };
+
+        // Add track line layer
+        map.addSource('track', {
+            'type': 'geojson',
+            'data': this.trackLine
+        });
+        map.addLayer({
+            'id': 'track',
+            'type': 'line',
+            'source': 'track',
+            'paint': {
+                'line-color': this.trackLineColor,
+                'line-width': this.trackLineWeight
+            }
+        });
+
+        // Add direction indicators
+        const directionPoints = this.createDirectionPoints(coordinates);
+        map.addImage('direction-arrow', this.createArrowImage());
+        map.addSource('track-directions', {
+            'type': 'geojson',
+            'data': directionPoints
+        });
+        map.addLayer({
+            'id': 'track-directions',
+            'type': 'symbol',
+            'source': 'track-directions',
+            'layout': {
+                'icon-image': 'direction-arrow',
+                'icon-rotate': ['get', 'bearing'],
+                'icon-allow-overlap': true,
+                'icon-ignore-placement': true
+            }
+        });
+
+        // Fit map to track bounds
+        const locationTracker = this.app.locationTracker();
+        locationTracker.pause();  // Pause before fitting bounds
+
+        const bounds = new mapboxgl.LngLatBounds();
+        coordinates.forEach(coord => bounds.extend(coord));
+        
+        map.fitBounds(bounds, { padding: 50 });
+
+        // Udate the UI
+        this.updateUI();
+
+        // Resume location tracking after delay
+        setTimeout(() => {
+            locationTracker.unpause();
+        }, this.locationTrackerResumeDelay);
+    },
+
+    /**
+     * Updates UI elements after track processing
+     */
+    updateUI() {
+        const uiControls = this.app.uiControls();
+        const progressTracker = this.app.progressTracker();
+        uiControls.showClearButton();
+        progressTracker.showProgressDisplay();
+    },
+
+    /**
+     * Clears the current track from the map
+     */
+    clearTrack() {
+        const map = this.app.map().getInstance();
+        
+        // Remove layers and sources
+        ['track', 'track-directions'].forEach(id => {
+            if (map.getLayer(id)) {
+                map.removeLayer(id);
+            }
+            if (map.getSource(id)) {
+                map.removeSource(id);
+            }
+        });
+
+        // Remove direction arrow image
+        if (map.hasImage('direction-arrow')) {
+            map.removeImage('direction-arrow');
+        }
+
+        // Reset track data
+        this.trackPoints = [];
+        this.trackDistances = [];
+        this.trackLine = null;
+
+        // Update UI
+        const uiControls = this.app.uiControls();
+        const progressTracker = this.app.progressTracker();
+        uiControls.hideClearButton();
+        progressTracker.hideProgressDisplay();
     },
 
     /**
@@ -106,147 +287,6 @@ const trackManager = {
             cumulativeDistance += distance;
             this.trackDistances.push(cumulativeDistance);
         }
-    },
-
-    /**
-     * Initializes track handling functionality
-     */
-    initTrackHandling() {
-        const map = this.app.map().getInstance();
-        const fileInput = document.getElementById('gpx-file');
-        fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = async (e) => {
-                    this.clearTrack(map);
-
-                    // Reset file input
-                    fileInput.value = '';
-
-                    // Pause location tracking
-                    const locationTracker = this.app.locationTracker();
-                    locationTracker.pause();
-
-                    // Parse GPX
-                    const gpx = new DOMParser().parseFromString(e.target.result, 'text/xml');
-                    const converted = toGeoJSON.gpx(gpx);
-
-                    // Process the track
-                    if (converted.features.length > 0) {
-                        const coordinates = converted.features[0].geometry.coordinates;
-
-                        if (coordinates.length > 0) {
-                            // Interpolate additional points
-                            const interpolatedCoordinates = this.interpolateTrackPoints(coordinates);
-                            
-                            // Store track points
-                            this.trackPoints = interpolatedCoordinates;
-
-                            // Calculate track distances
-                            this.calculateTrackDistances();
-
-                            // Draw the track line
-                            this.trackLine = {
-                                'type': 'Feature',
-                                'geometry': {
-                                    'type': 'LineString',
-                                    'coordinates': interpolatedCoordinates
-                                }
-                            };
-
-                            // Add track line source and layer first
-                            map.addSource('track', {
-                                'type': 'geojson',
-                                'data': this.trackLine
-                            });
-                            map.addLayer({
-                                'id': 'track',
-                                'type': 'line',
-                                'source': 'track',
-                                'paint': {
-                                    'line-color': this.trackLineColor,
-                                    'line-width': this.trackLineWeight
-                                }
-                            });
-
-                            // Then add direction points with bearings
-                            const directionPoints = this.createDirectionPoints(interpolatedCoordinates);
-
-                            // Add arrow image and direction layer on top
-                            map.addImage('direction-arrow', this.createArrowImage());
-                            map.addSource('track-directions', {
-                                'type': 'geojson',
-                                'data': directionPoints
-                            });
-                            map.addLayer({
-                                'id': 'track-directions',
-                                'type': 'symbol',
-                                'source': 'track-directions',
-                                'layout': {
-                                    'icon-image': 'direction-arrow',
-                                    'icon-rotate': ['get', 'bearing'],
-                                    'icon-allow-overlap': true,
-                                    'icon-ignore-placement': true
-                                }
-                            });
-
-                            // Fit the map to the track bounds
-                            const bounds = new mapboxgl.LngLatBounds();
-                            interpolatedCoordinates.forEach(coord => bounds.extend(coord));
-                            map.fitBounds(bounds, { padding: 50 });
-
-                            // Show clear button and progress display
-                            const uiControls = this.app.uiControls();
-                            const progressTracker = this.app.progressTracker();
-                            uiControls.showClearButton();
-                            progressTracker.showProgressDisplay();
-
-                            // Resume location tracking
-                            locationTracker.unpause();
-                        }
-                    }
-                };
-                reader.readAsText(file);
-            }
-        });
-    },
-
-    /**
-     * Clears the current track from the map
-     * @param {Object} map - Mapbox GL JS map instance
-     */
-    clearTrack(map) {
-        // Remove track layers and sources
-        ['track-directions', 'track'].forEach(id => {
-            if (map.getLayer(id)) {
-                map.removeLayer(id);
-            }
-            if (map.getSource(id)) {
-                map.removeSource(id);
-            }
-        });
-
-        // Remove direction arrow image
-        if (map.hasImage('direction-arrow')) {
-            map.removeImage('direction-arrow');
-        }
-
-        // Clear track data
-        this.trackPoints = [];
-        this.trackDistances = [];
-        this.trackLine = null;
-        this.directionMarkers = [];
-
-        // Hide clear button and progress display
-        const uiControls = this.app.uiControls();
-        const progressTracker = this.app.progressTracker();
-        uiControls.hideClearButton();
-        progressTracker.hideProgressDisplay();
-
-        // Resume location tracking
-        const locationTracker = this.app.locationTracker();
-        locationTracker.unpause();
     },
 
     /**
