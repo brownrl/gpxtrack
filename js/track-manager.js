@@ -3,7 +3,7 @@
  * Manages GPX track loading, display, and interaction.
  */
 
-import TrackPoint from './track-point.js';
+import GeoPoint from './geo-point.js';
 
 const trackManager = {
     // Default properties for the track line and points
@@ -106,7 +106,7 @@ const trackManager = {
 
         // Process track data
         const interpolatedCoordinates = this.interpolateTrackPoints(coordinates);
-        this.trackPoints = interpolatedCoordinates.map(coord => new TrackPoint(coord[0], coord[1]));
+        this.trackPoints = interpolatedCoordinates.map(coord => GeoPoint.fromArray(coord));
         this.calculateTrackDistances();
 
         // Update map layers

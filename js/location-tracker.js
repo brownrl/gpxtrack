@@ -4,6 +4,8 @@
  * Handles real-time GPS location tracking and map updates.
  */
 
+import GeoPoint from './geo-point.js';
+
 const locationTracker = {
     paused: false,
     watchId: null,
@@ -86,13 +88,11 @@ const locationTracker = {
      * @param {Object} position - Position object with coords
      */
     onLocationUpdate(position) {
-        const latitude = position.coords.latitude;
-        const longitude = position.coords.longitude;
-        this.currentLocation = { lat: latitude, lng: longitude };
+        const geoPoint = GeoPoint.fromPosition(position);
+        this.currentLocation = geoPoint;
 
         // Add new location to the list for heading calculation
-        const newLocation = { lng: longitude, lat: latitude };
-        this.previousLocations.push(newLocation);
+        this.previousLocations.push(geoPoint);
         if (this.previousLocations.length > this.headingPoints) {
             this.previousLocations.shift();
         }
@@ -101,7 +101,7 @@ const locationTracker = {
         let heading = null;
         if (this.previousLocations.length >= 2) {
             const lastPoint = this.previousLocations[this.previousLocations.length - 2];
-            heading = this.geoUtils.calculateBearing(lastPoint, newLocation);
+            heading = this.geoUtils.calculateBearing(lastPoint.toLatLng(), geoPoint.toLatLng());
 
             // Smooth heading changes
             if (this.lastHeading !== null) {
@@ -114,20 +114,18 @@ const locationTracker = {
                 heading = (heading + 360) % 360;
             }
             this.lastHeading = heading;
+            geoPoint.heading = heading;
         }
 
         // Update the location source
         if (this.mapInstance.getSource('location')) {
-            this.mapInstance.getSource('location').setData({
-                type: 'Point',
-                coordinates: [longitude, latitude]
-            });
+            this.mapInstance.getSource('location').setData(geoPoint.toGeoJSON());
 
             // Animate the map movement with rotation if not paused
             if (!this.paused && !this.isAnimating) {
                 this.isAnimating = true;
                 this.mapInstance.flyTo({
-                    center: [longitude, latitude],
+                    center: geoPoint.toArray(),
                     zoom: this.zoomLevel,
                     bearing: heading || 0,
                     duration: this.animationDuration,
@@ -140,7 +138,7 @@ const locationTracker = {
         }
 
         // Update progress through app mediator
-        this.progressTracker.updateProgress(this.currentLocation);
+        this.progressTracker.updateProgress(geoPoint.toLatLng());
     },
 
     /**
