@@ -1,19 +1,25 @@
-const CACHE_NAME = 'gpx-track-v2';
+const CACHE_NAME = 'gpx-track-v3';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
-    '/app.js',
     '/manifest.json',
     '/styles.css',
+    // JavaScript files
     '/js/location-tracker.js',
     '/js/map.js',
     '/js/progress-tracker.js',
     '/js/track-manager.js',
     '/js/ui-controls.js',
     '/js/geo-utils.js',
+    '/js/geo-point.js',
+    // Icons
     '/icons/icon-192x192.png',
     '/icons/icon-512x512.png',
-    '/libs/togeojson.min.js'
+    // Libraries
+    '/libs/togeojson.min.js',
+    // Mapbox resources
+    'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js',
+    'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css'
 ];
 
 // Install event - cache assets
@@ -49,8 +55,8 @@ self.addEventListener('fetch', (event) => {
                 // Return cached version or fetch from network
                 return response || fetch(event.request)
                     .then((response) => {
-                        // Cache new successful responses
-                        if (response && response.status === 200) {
+                        // Cache new responses for next time
+                        if (response.ok) {
                             const responseClone = response.clone();
                             caches.open(CACHE_NAME)
                                 .then((cache) => {
@@ -61,8 +67,8 @@ self.addEventListener('fetch', (event) => {
                     });
             })
             .catch(() => {
-                // Fallback for offline
-                return new Response('You are offline. Please check your connection.');
+                // Offline fallback
+                return new Response('Offline - Cannot fetch resource');
             })
     );
 });
