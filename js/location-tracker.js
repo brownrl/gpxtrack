@@ -16,6 +16,12 @@ const locationTracker = {
     circleRadius: 8,
     circleColor: '#0066ff',
     locationTimeout: 10000,
+    previousLocations: [], // Store the last locations for bearing calculation
+    headingPoints: 10,     // Number of points to use for heading calculation
+    isAnimating: false,    // Track if we're currently animating
+    animationDuration: 1000, // Duration in ms for animations
+    lastHeading: null,     // Store last heading for smoothing
+    minRotationThreshold: 15, // Minimum degrees of change needed to rotate map
 
     /**
      * Initialize with app reference
@@ -23,6 +29,7 @@ const locationTracker = {
      */
     init(app) {
         this.app = app;
+        this.map = this.app.map().getInstance();
         this.initLocationTracking();
     },
 
@@ -30,7 +37,6 @@ const locationTracker = {
      * Initializes location tracking
      */
     initLocationTracking() {
-        this.map = this.app.map().getInstance();
 
         // Setup location source and layer if they don't exist
         if (!this.map.getSource('location')) {
@@ -73,6 +79,32 @@ const locationTracker = {
         const longitude = position.coords.longitude;
         this.currentLocation = { lat: latitude, lng: longitude };
 
+        // Add new location to the list for heading calculation
+        const newLocation = { lng: longitude, lat: latitude };
+        this.previousLocations.push(newLocation);
+        if (this.previousLocations.length > this.headingPoints) {
+            this.previousLocations.shift();
+        }
+
+        // Calculate heading if we have enough points
+        let heading = null;
+        if (this.previousLocations.length >= 2) {
+            const lastPoint = this.previousLocations[this.previousLocations.length - 2];
+            heading = this.app.geoUtils().calculateBearing(lastPoint, newLocation);
+
+            // Smooth heading changes
+            if (this.lastHeading !== null) {
+                const diff = Math.abs(heading - this.lastHeading);
+                if (diff > 180) {
+                    // If the difference is more than 180 degrees, we need to adjust
+                    heading = diff > 270 ? heading + 360 : heading - 360;
+                }
+                heading = this.lastHeading * 0.7 + heading * 0.3;
+                heading = (heading + 360) % 360;
+            }
+            this.lastHeading = heading;
+        }
+
         // Update the location source
         if (this.map.getSource('location')) {
             this.map.getSource('location').setData({
@@ -80,12 +112,19 @@ const locationTracker = {
                 coordinates: [longitude, latitude]
             });
 
-            // Center map on location if not paused
-            if (!this.paused) {
+            // Animate the map movement with rotation if not paused
+            if (!this.paused && !this.isAnimating) {
+                this.isAnimating = true;
                 this.map.flyTo({
                     center: [longitude, latitude],
-                    zoom: this.zoomLevel
+                    zoom: this.zoomLevel,
+                    bearing: heading || 0,
+                    duration: this.animationDuration,
+                    essential: true
                 });
+                setTimeout(() => {
+                    this.isAnimating = false;
+                }, this.animationDuration);
             }
         }
 
