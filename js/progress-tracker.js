@@ -13,11 +13,11 @@ import trackManager from './track-manager.js';
 import { calculateDistance } from './utils.js';
 
 const progressTracker = {
-    // Configuration
-    progressDisplay: null,
-    lastProgress: 0,
-    updateThreshold: 10, // meters
 
+    // Configuration
+    lastUpdateTime: 0, // Track when we last did a real update
+    updateInterval: 60000, // Update interval in milliseconds (default: 1 minute)
+    
     /**
      * Shows the progress display
      */
@@ -36,12 +36,20 @@ const progressTracker = {
         }
     },
 
+    
+
     /**
      * Updates the progress display with new location
      * @param {Object} currentLocation - Current location object with lat/lng
      * @param {Object} map - Mapbox GL JS map instance
      */
     updateProgress: function(currentLocation, map) {
+        const now = Date.now();
+        // Only update if it's been more than updateInterval milliseconds since last update
+        if (now - this.lastUpdateTime < this.updateInterval) {
+            return;
+        }
+        
         const trackPoints = trackManager.trackPoints;
         const trackDistances = trackManager.trackDistances;
         
@@ -71,6 +79,9 @@ const progressTracker = {
         if (progressElement) {
             progressElement.textContent = `${(remainingDistance / 1000).toFixed(1)} km`;
         }
+
+        // Update the last update time
+        this.lastUpdateTime = now;
 
         return {
             closestIndex,
