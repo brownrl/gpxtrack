@@ -24,11 +24,16 @@ const locationTracker = {
     circleColor: '#0066ff',
     locationTimeout: 10000,
     previousLocations: [], // Store the last locations for bearing calculation
-    headingPoints: 10,     // Number of points to use for heading calculation
-    isAnimating: false,    // Track if we're currently animating
+    headingPoints: 5,     // Reduced from 10 to 5 for more responsive turns
+    minSpeed: 0.5,        // Minimum speed in m/s (1.8 km/h) to update heading
+    maxHeadingChange: 45, // Maximum heading change per update in degrees
+    headingWeights: [0.1, 0.15, 0.2, 0.25, 0.3], // Weights for last 5 points
+    isAnimating: false,   // Track if we're currently animating
     animationDuration: 1000, // Duration in ms for animations
-    lastHeading: null,     // Store last heading for smoothing
+    lastHeading: null,    // Store last heading for smoothing
     minRotationThreshold: 15, // Minimum degrees of change needed to rotate map
+    wasJustUnpaused: false, // Track if we just unpaused
+    isFirstLocation: true, // Track if this is the first location update
 
     /**
      * Initialize with app reference
@@ -47,6 +52,20 @@ const locationTracker = {
      * Initializes location tracking
      */
     initLocationTracking() {
+        if (!navigator.geolocation) {
+            console.error('Geolocation is not supported by this browser.');
+            return;
+        }
+
+        // Clear any existing watch
+        if (this.watchId) {
+            navigator.geolocation.clearWatch(this.watchId);
+        }
+
+        this.isFirstLocation = true; // Reset first location flag
+        this.previousLocations = []; // Clear previous locations
+        this.lastHeading = null;     // Reset heading
+
         // Setup location source and layer if they don't exist
         if (!this.mapInstance.getSource('location')) {
             this.mapInstance.addSource('location', {
@@ -67,20 +86,79 @@ const locationTracker = {
             });
         }
 
-        // Start watching position with timeout
-        const options = {
-            enableHighAccuracy: true,
-            timeout: this.locationTimeout,
-            maximumAge: 0
-        };
+        // Start watching position
+        this.watchId = navigator.geolocation.watchPosition(
+            this.onLocationUpdate.bind(this),
+            this.handleLocationError.bind(this),
+            {
+                enableHighAccuracy: true,
+                timeout: this.locationTimeout,
+                maximumAge: 0
+            }
+        );
+    },
 
-        if ("geolocation" in navigator) {
-            this.watchId = navigator.geolocation.watchPosition(
-                position => this.onLocationUpdate(position),
-                error => console.error("Error getting location:", error),
-                options
+    /**
+     * Calculate weighted heading from previous points
+     * @param {GeoPoint[]} points - Array of previous points
+     * @param {GeoPoint} currentPoint - Current location
+     * @returns {number|null} - Calculated heading or null if speed too low
+     */
+    calculateSmoothedHeading(points, currentPoint) {
+        if (points.length < 2) return null;
+
+        // Check if we're moving fast enough to calculate heading
+        const speed = currentPoint.speed || 0;
+        if (speed < this.minSpeed) return this.lastHeading;
+
+        // Calculate individual headings from recent points
+        const headings = [];
+        for (let i = 0; i < points.length - 1; i++) {
+            const heading = this.geoUtils.calculateBearing(
+                points[i].toLatLng(),
+                points[i + 1].toLatLng()
             );
+            headings.push(heading);
         }
+
+        // Add current heading
+        const currentHeading = this.geoUtils.calculateBearing(
+            points[points.length - 1].toLatLng(),
+            currentPoint.toLatLng()
+        );
+        headings.push(currentHeading);
+
+        // Apply weighted average
+        let smoothedHeading = 0;
+        let totalWeight = 0;
+        const weights = this.headingWeights.slice(-headings.length);
+        
+        headings.forEach((heading, i) => {
+            // Normalize heading relative to the last heading
+            let normalizedHeading = heading;
+            if (this.lastHeading !== null) {
+                const diff = heading - this.lastHeading;
+                if (Math.abs(diff) > 180) {
+                    normalizedHeading += diff > 0 ? -360 : 360;
+                }
+            }
+            smoothedHeading += normalizedHeading * weights[i];
+            totalWeight += weights[i];
+        });
+
+        smoothedHeading /= totalWeight;
+
+        // Limit maximum heading change
+        if (this.lastHeading !== null) {
+            const headingDiff = smoothedHeading - this.lastHeading;
+            if (Math.abs(headingDiff) > this.maxHeadingChange) {
+                smoothedHeading = this.lastHeading + 
+                    (this.maxHeadingChange * Math.sign(headingDiff));
+            }
+        }
+
+        // Normalize back to 0-360 range
+        return (smoothedHeading + 360) % 360;
     },
 
     /**
@@ -97,22 +175,13 @@ const locationTracker = {
             this.previousLocations.shift();
         }
 
-        // Calculate heading if we have enough points
-        let heading = null;
-        if (this.previousLocations.length >= 2) {
-            const lastPoint = this.previousLocations[this.previousLocations.length - 2];
-            heading = this.geoUtils.calculateBearing(lastPoint.toLatLng(), geoPoint.toLatLng());
-
-            // Smooth heading changes
-            if (this.lastHeading !== null) {
-                const diff = Math.abs(heading - this.lastHeading);
-                if (diff > 180) {
-                    // If the difference is more than 180 degrees, we need to adjust
-                    heading = diff > 270 ? heading + 360 : heading - 360;
-                }
-                heading = this.lastHeading * 0.7 + heading * 0.3;
-                heading = (heading + 360) % 360;
-            }
+        // Calculate smoothed heading
+        const heading = this.calculateSmoothedHeading(
+            this.previousLocations,
+            geoPoint
+        );
+        
+        if (heading !== null) {
             this.lastHeading = heading;
             geoPoint.heading = heading;
         }
@@ -121,19 +190,35 @@ const locationTracker = {
         if (this.mapInstance.getSource('location')) {
             this.mapInstance.getSource('location').setData(geoPoint.toGeoJSON());
 
-            // Animate the map movement with rotation if not paused
-            if (!this.paused && !this.isAnimating) {
+            // Check if we should animate
+            const shouldAnimate = !this.paused && 
+                                !this.isAnimating && 
+                                (this.isFirstLocation ||    // Always animate first location
+                                 this.wasJustUnpaused ||    // Always animate after unpausing
+                                 (heading !== null && geoPoint.speed >= this.minSpeed));
+
+            if (shouldAnimate) {
                 this.isAnimating = true;
+
+                // For first location or unpausing, ensure we zoom to the proper level
+                const targetZoom = (this.isFirstLocation || this.wasJustUnpaused) 
+                    ? this.zoomLevel 
+                    : this.mapInstance.getZoom();
+
                 this.mapInstance.flyTo({
                     center: geoPoint.toArray(),
-                    zoom: this.zoomLevel,
-                    bearing: heading || 0,
+                    zoom: targetZoom,
+                    bearing: heading || 0, // Use 0 if no heading when unpausing
                     duration: this.animationDuration,
                     essential: true
                 });
+
                 setTimeout(() => {
                     this.isAnimating = false;
                 }, this.animationDuration);
+                
+                this.wasJustUnpaused = false;  // Reset the unpaused flag
+                this.isFirstLocation = false;  // Reset the first location flag
             }
         }
 
@@ -150,7 +235,7 @@ const locationTracker = {
     },
 
     /**
-     * Pauses location tracking
+     * Pause location tracking
      */
     pause() {
         this.paused = true;
@@ -161,10 +246,11 @@ const locationTracker = {
     },
 
     /**
-     * Resumes location tracking
+     * Resume location tracking
      */
-    unpause() {
+    resume() {
         this.paused = false;
+        this.wasJustUnpaused = true; // Set flag when unpausing
         this.initLocationTracking();
     },
 
@@ -174,6 +260,14 @@ const locationTracker = {
      */
     isPaused() {
         return this.paused;
+    },
+
+    /**
+     * Handle location error
+     * @param {Object} error - Error object
+     */
+    handleLocationError(error) {
+        console.error("Error getting location:", error);
     }
 };
 
