@@ -6,11 +6,11 @@ const ASSETS_TO_CACHE = [
     '/manifest.json',
     '/styles.css',
     '/js/location-tracker.js',
-    '/js/map-config.js',
+    '/js/map.js',
     '/js/progress-tracker.js',
     '/js/track-manager.js',
     '/js/ui-controls.js',
-    '/js/utils.js',
+    '/js/geo-utils.js',
     '/icons/icon-192x192.png',
     '/icons/icon-512x512.png',
     '/libs/togeojson.min.js'

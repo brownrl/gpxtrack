@@ -2,40 +2,8 @@
  * location-tracker.js
  * 
  * This module handles real-time GPS location tracking and map updates.
- * It manages the user's location dot on the map, handles location updates,
- * and provides controls for pausing/resuming tracking.
- * 
- * Key Features:
- * - Real-time GPS tracking
- * - Smooth map animations for location updates
- * - Heading calculation based on movement
- * - Pause/Resume functionality
- * 
- * Configuration Properties:
- * @property {number} zoomLevel - Default zoom level for the map when tracking location
- * @property {number} headingPoints - Number of points to use for calculating heading
- * @property {number} minDistance - Minimum distance (meters) required between updates to trigger a map update
- * @property {number} circleRadius - Size of the location dot on the map
- * @property {string} circleColor - Color of the location dot (hex format)
- * @property {number} minRotationThreshold - Minimum degrees of change needed to rotate map
- * @property {number} maxRotationThreshold - Maximum degrees for normal animation duration
- * 
- * Important Notes:
- * 1. The location dot styling (circleRadius, circleColor) should not be modified
- *    as they are part of the app's visual design.
- * 2. Core tracking functionality (GPS updates, heading calculation) should be
- *    preserved to maintain accurate location tracking.
- * 3. The METER_PER_DEGREE constant is used for distance calculations and
- *    should not be changed.
  */
 
-import trackManager from './track-manager.js';
-import progressTracker from './progress-tracker.js';
-import { calculateBearing, calculateDistance } from './utils.js';
-
-/**
- * Location tracking functionality
- */
 const locationTracker = {
     // Configuration
     paused: false,
@@ -56,13 +24,24 @@ const locationTracker = {
     circleRadius: 8,
     circleColor: '#0066ff',
     map: null, // Store map reference
+    app: null, // Reference to the app mediator
+
+    /**
+     * Initialize with app reference and start location tracking
+     * @param {Object} app - The app mediator
+     */
+    init(app) {
+        this.app = app;
+        this.initLocationTracking();
+    },
 
     /**
      * Initializes location tracking on the map
-     * @param {Object} map - Mapbox GL JS map instance
      */
-    initLocationTracking: function(map) {
-        this.map = map; // Store map reference
+    initLocationTracking() {
+        this.map = this.app.map().getInstance();
+        const map = this.map;
+        
         // Setup location source and layer if they don't exist
         if (!map.getSource('location')) {
             map.addSource('location', {
@@ -108,6 +87,13 @@ const locationTracker = {
     },
 
     /**
+     * Calculate bearing between two points
+     */
+    calculateBearing(point1, point2) {
+        return this.app.geoUtils().calculateBearing(point1, point2);
+    },
+
+    /**
      * Updates the map with new location data
      * @param {Object} position - Position object with coords
      */
@@ -128,7 +114,7 @@ const locationTracker = {
         let heading = null;
         if (this.previousLocations.length >= 2) {
             const lastPoint = this.previousLocations[this.previousLocations.length - 2];
-            heading = calculateBearing(lastPoint, newLocation);
+            heading = this.calculateBearing(lastPoint, newLocation);
 
             // Smooth heading changes
             if (this.lastHeading !== null) {
@@ -166,14 +152,23 @@ const locationTracker = {
             }
         }
 
-        // Update progress display
-        progressTracker.updateProgress(this.currentLocation, this.map);
+        // Update progress through app mediator
+        const progressTracker = this.app.progressTracker();
+        progressTracker.updateProgress(this.currentLocation);
+    },
+
+    /**
+     * Get current location
+     * @returns {Object|null} Current location or null if not available
+     */
+    getCurrentLocation() {
+        return this.currentLocation;
     },
 
     /**
      * Pauses location tracking
      */
-    pause: function() {
+    pause() {
         this.paused = true;
         if (this.watchId !== null) {
             navigator.geolocation.clearWatch(this.watchId);
@@ -195,15 +190,7 @@ const locationTracker = {
     unpause() {
         this.paused = false;
         this.forceNextUpdate = true;
-        this.initLocationTracking(this.map);
-    },
-
-    /**
-     * Gets the current location
-     * @returns {Object|null} Location object with lat/lng or null if not available
-     */
-    getCurrentLocation: function() {
-        return this.currentLocation;
+        this.initLocationTracking();
     },
 
     /**
@@ -211,8 +198,11 @@ const locationTracker = {
      * @param {number} radius - Radius of the circle
      * @returns {Object} this
      */
-    setCircleRadius: function(radius) {
+    setCircleRadius(radius) {
         this.circleRadius = radius;
+        if (this.map && this.map.getLayer('location')) {
+            this.map.setPaintProperty('location', 'circle-radius', radius);
+        }
         return this;
     },
 
@@ -223,6 +213,9 @@ const locationTracker = {
      */
     setCircleColor(color) {
         this.circleColor = color;
+        if (this.map && this.map.getLayer('location')) {
+            this.map.setPaintProperty('location', 'circle-color', color);
+        }
         return this;
     },
 
@@ -230,7 +223,7 @@ const locationTracker = {
      * Checks if location tracking is paused
      * @returns {boolean} True if paused, false otherwise
      */
-    isPaused: function() {
+    isPaused() {
         return this.paused;
     }
 };

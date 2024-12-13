@@ -1,34 +1,33 @@
 /**
  * progress-tracker.js
  * Tracks and displays user progress along the GPX track.
- * 
- * Key features:
- * - Calculates distance along track
- * - Updates progress display
- * - Manages progress display visibility
- * - Formats progress information
  */
 
-import trackManager from './track-manager.js';
-import { calculateDistance } from './utils.js';
-
 const progressTracker = {
-
     // Configuration
     lastUpdateTime: 0, // Track when we last did a real update
     updateInterval: 60000, // Update interval in milliseconds (default: 1 minute)
+    app: null, // Reference to the app mediator
     
+    /**
+     * Initialize the progress tracker
+     * @param {Object} app - Reference to the app mediator
+     */
+    init(app) {
+        this.app = app;
+    },
+
     /**
      * Shows the progress display
      */
-    showProgressDisplay: function() {
+    showProgressDisplay() {
         document.getElementById('progress-display').style.display = 'block';
     },
 
     /**
      * Hides the progress display
      */
-    hideProgressDisplay: function() {
+    hideProgressDisplay() {
         const progressElement = document.getElementById('progress-display');
         if (progressElement) {
             progressElement.style.display = 'none';
@@ -36,19 +35,19 @@ const progressTracker = {
         }
     },
 
-    
-
     /**
      * Updates the progress display with new location
      * @param {Object} currentLocation - Current location object with lat/lng
-     * @param {Object} map - Mapbox GL JS map instance
      */
-    updateProgress: function(currentLocation, map) {
+    updateProgress(currentLocation) {
         const now = Date.now();
         // Only update if it's been more than updateInterval milliseconds since last update
         if (now - this.lastUpdateTime < this.updateInterval) {
             return;
         }
+
+        const trackManager = this.app.trackManager();
+        const map = this.app.map().getInstance();
         
         const trackPoints = trackManager.trackPoints;
         const trackDistances = trackManager.trackDistances;
@@ -62,7 +61,7 @@ const progressTracker = {
         let closestDistance = Infinity;
 
         trackPoints.forEach((point, index) => {
-            const distance = calculateDistance(currentLocation, point);
+            const distance = this.calculateDistance(currentLocation, point);
             if (distance < closestDistance) {
                 closestDistance = distance;
                 closestIndex = index;
@@ -92,12 +91,13 @@ const progressTracker = {
     },
 
     /**
-     * Formats distance for display
-     * @param {number} meters - Distance in meters
-     * @returns {string} Formatted distance string
+     * Calculates distance between two points
+     * @param {Object} point1 - First point with lat/lng
+     * @param {Object} point2 - Second point with lat/lng
+     * @returns {number} Distance in meters
      */
-    formatDistance: function(meters) {
-        return `${(meters / 1000).toFixed(1)} km`;
+    calculateDistance(point1, point2) {
+        return this.app.geoUtils().calculateDistance(point1, point2);
     }
 };
 

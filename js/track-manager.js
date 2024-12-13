@@ -1,28 +1,14 @@
 /**
  * track-manager.js
  * Manages GPX track loading, display, and interaction.
- * 
- * Key features:
- * - Loads and parses GPX files
- * - Displays tracks on the map
- * - Manages track styling and visibility
- * - Handles track clearing and updates
- * - Calculates track statistics (distance, etc.)
  */
 
-import locationTracker from './location-tracker.js';
-import { calculateBearing, calculateDistance } from './utils.js';
-import progressTracker from './progress-tracker.js';
-import uiControls from './ui-controls.js';
-
-/**
- * Track management functionality
- */
 const trackManager = {
     // Default properties for the track line and points
     trackLineColor: '#ff0000', // red
     trackLineWeight: 4,
     interpolationDistance: 50, // meters
+    app: null, // Reference to the app mediator
 
     // Configuration for direction indicators
     arrowConfig: {
@@ -38,10 +24,19 @@ const trackManager = {
     directionMarkers: [],
 
     /**
+     * Initialize with app reference and setup track handling
+     * @param {Object} app - The app mediator
+     */
+    init(app) {
+        this.app = app;
+        this.initTrackHandling();
+    },
+
+    /**
      * Creates an arrow image for direction indicators
      * @returns {ImageData} Arrow image data
      */
-    createArrowImage: function() {
+    createArrowImage() {
         const cfg = this.arrowConfig;
         const canvas = document.createElement('canvas');
         canvas.width = cfg.width;
@@ -62,13 +57,30 @@ const trackManager = {
     },
 
     /**
+     * Calculate distance between two points
+     * @param {Object} point1 - First point with lat/lng
+     * @param {Object} point2 - Second point with lat/lng
+     * @returns {number} Distance in meters
+     */
+    calculateDistance(point1, point2) {
+        return this.app.geoUtils().calculateDistance(point1, point2);
+    },
+
+    /**
+     * Calculate bearing between two points
+     */
+    calculateBearing(point1, point2) {
+        return this.app.geoUtils().calculateBearing(point1, point2);
+    },
+
+    /**
      * Interpolates a point at a specific distance along a line segment
      * @param {Array} point1 - Starting point coordinates [lon, lat]
      * @param {Array} point2 - Ending point coordinates [lon, lat]
      * @param {Number} fraction - Fraction of the distance to interpolate
      * @returns {Array} Interpolated point coordinates [lon, lat]
      */
-    interpolatePoint: function(point1, point2, fraction) {
+    interpolatePoint(point1, point2, fraction) {
         const [lon1, lat1] = point1;
         const [lon2, lat2] = point2;
         
@@ -84,7 +96,7 @@ const trackManager = {
      * @param {Array} coordinates - Array of track coordinates
      * @returns {Array} Interpolated track coordinates
      */
-    interpolateTrackPoints: function(coordinates) {
+    interpolateTrackPoints(coordinates) {
         const interpolatedPoints = [];
         
         for (let i = 0; i < coordinates.length - 1; i++) {
@@ -93,7 +105,10 @@ const trackManager = {
             
             interpolatedPoints.push(point1);
             
-            const segmentDistance = calculateDistance(point1, point2);
+            const point1Obj = { lat: point1[1], lng: point1[0] };
+            const point2Obj = { lat: point2[1], lng: point2[0] };
+            const segmentDistance = this.calculateDistance(point1Obj, point2Obj);
+            
             if (segmentDistance > this.interpolationDistance) {
                 // Calculate how many points we need to add
                 const numPoints = Math.floor(segmentDistance / this.interpolationDistance);
@@ -115,15 +130,14 @@ const trackManager = {
     /**
      * Calculates cumulative distances for the track
      */
-    calculateTrackDistances: function() {
+    calculateTrackDistances() {
         this.trackDistances = [0];  // First point starts at 0
         let cumulativeDistance = 0;
 
         for (let i = 1; i < this.trackPoints.length; i++) {
-            const distance = calculateDistance(
-                this.trackPoints[i-1],
-                this.trackPoints[i]
-            );
+            const point1 = { lat: this.trackPoints[i-1][1], lng: this.trackPoints[i-1][0] };
+            const point2 = { lat: this.trackPoints[i][1], lng: this.trackPoints[i][0] };
+            const distance = this.calculateDistance(point1, point2);
             cumulativeDistance += distance;
             this.trackDistances.push(cumulativeDistance);
         }
@@ -131,11 +145,9 @@ const trackManager = {
 
     /**
      * Initializes track handling functionality
-     * @param {Object} map - Mapbox GL JS map instance
-     * @param {Object} startIcon - Start icon
-     * @param {Object} endIcon - End icon
      */
-    initTrackHandling: function(map, startIcon, endIcon) {
+    initTrackHandling() {
+        const map = this.app.map.getInstance();
         const fileInput = document.getElementById('gpx-file');
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
@@ -148,7 +160,8 @@ const trackManager = {
                     fileInput.value = '';
 
                     // Pause location tracking
-                    locationTracker.pause(map);
+                    const locationTracker = this.app.locationTracker();
+                    locationTracker.pause();
 
                     // Parse GPX
                     const gpx = new DOMParser().parseFromString(e.target.result, 'text/xml');
@@ -198,8 +211,8 @@ const trackManager = {
                             // Add arrow image and direction layer on top
                             map.addImage('direction-arrow', this.createArrowImage());
                             map.addSource('track-directions', {
-                                type: 'geojson',
-                                data: directionPoints
+                                'type': 'geojson',
+                                'data': directionPoints
                             });
                             map.addLayer({
                                 'id': 'track-directions',
@@ -207,33 +220,20 @@ const trackManager = {
                                 'source': 'track-directions',
                                 'layout': {
                                     'icon-image': 'direction-arrow',
-                                    'icon-size': 1,
                                     'icon-rotate': ['get', 'bearing'],
-                                    'icon-rotation-alignment': 'map',
                                     'icon-allow-overlap': true,
                                     'icon-ignore-placement': true
                                 }
                             });
 
-                            // Get all existing layers
-                            const layers = map.getStyle().layers;
-                            const topLayer = layers[layers.length - 1].id;
+                            // Fit the map to the track bounds
+                            const bounds = new mapboxgl.LngLatBounds();
+                            interpolatedCoordinates.forEach(coord => bounds.extend(coord));
+                            map.fitBounds(bounds, { padding: 50 });
 
-                            // First fit to track bounds
-                            const bounds = interpolatedCoordinates.reduce((bounds, coord) => {
-                                return bounds.extend(coord);
-                            }, new mapboxgl.LngLatBounds(interpolatedCoordinates[0], interpolatedCoordinates[0]));
-                            
-                            map.fitBounds(bounds, {
-                                padding: { top: 50, bottom: 50, left: 50, right: 50 }
-                            });
-
-                            // After bounds fit, wait 3 seconds then unpause location tracking
-                            setTimeout(() => {
-                                locationTracker.unpause(map);
-                            }, 3000);
-
-                            // Enable UI controls and progress display
+                            // Show clear button and progress display
+                            const uiControls = this.app.uiControls();
+                            const progressTracker = this.app.progressTracker();
                             uiControls.showClearButton();
                             progressTracker.showProgressDisplay();
                         }
@@ -248,40 +248,37 @@ const trackManager = {
      * Clears the current track from the map
      * @param {Object} map - Mapbox GL JS map instance
      */
-    clearTrack: function(map) {
-        if (!map) return;
+    clearTrack(map) {
+        // Remove track layers and sources
+        ['track-directions', 'track'].forEach(id => {
+            if (map.getLayer(id)) {
+                map.removeLayer(id);
+            }
+            if (map.getSource(id)) {
+                map.removeSource(id);
+            }
+        });
 
-        // Clear track line
-        if (map.getLayer('track')) {
-            map.removeLayer('track');
-        }
-        if (map.getSource('track')) {
-            map.removeSource('track');
-        }
-        this.trackLine = null;
-        
-        // Clear direction arrows
-        if (map.getLayer('track-directions')) {
-            map.removeLayer('track-directions');
-        }
-        if (map.getSource('track-directions')) {
-            map.removeSource('track-directions');
-        }
-
-        // Remove arrow image
+        // Remove direction arrow image
         if (map.hasImage('direction-arrow')) {
             map.removeImage('direction-arrow');
         }
 
-        // Reset track data
+        // Clear track data
         this.trackPoints = [];
         this.trackDistances = [];
+        this.trackLine = null;
+        this.directionMarkers = [];
 
-        // Hide clear button
+        // Hide clear button and progress display
+        const uiControls = this.app.uiControls();
+        const progressTracker = this.app.progressTracker();
         uiControls.hideClearButton();
-
-        // Hide progress display when clearing the track
         progressTracker.hideProgressDisplay();
+
+        // Resume location tracking
+        const locationTracker = this.app.locationTracker();
+        locationTracker.unpause();
     },
 
     /**
@@ -289,40 +286,32 @@ const trackManager = {
      * @param {Array} coordinates - Array of track coordinates
      * @returns {Object} Direction points GeoJSON
      */
-    createDirectionPoints: function(coordinates) {
+    createDirectionPoints(coordinates) {
+        const features = [];
+        const freq = this.arrowConfig.frequency;
+
+        for (let i = 0; i < coordinates.length - 1; i += freq) {
+            const point1 = { lat: coordinates[i][1], lng: coordinates[i][0] };
+            const point2 = { lat: coordinates[i + 1][1], lng: coordinates[i + 1][0] };
+            const bearing = this.calculateBearing(point1, point2);
+
+            features.push({
+                type: 'Feature',
+                geometry: {
+                    type: 'Point',
+                    coordinates: coordinates[i]
+                },
+                properties: {
+                    bearing: bearing
+                }
+            });
+        }
+
         return {
             type: 'FeatureCollection',
-            features: coordinates
-                .filter((_, i) => i % this.arrowConfig.frequency === 0)  // Only keep every Nth point
-                .map((coord, i, filteredCoords) => {
-                    // Find the original index in the full coordinates array
-                    const originalIndex = i * this.arrowConfig.frequency;
-                    
-                    // Calculate bearing to the immediate next point
-                    let bearing = 0;
-                    if (originalIndex < coordinates.length - 1) {
-                        const nextCoord = coordinates[originalIndex + 1];
-                        
-                        // Convert coordinates to {lat, lng} objects
-                        bearing = calculateBearing(
-                            { lat: coord[1], lng: coord[0] },      // current point
-                            { lat: nextCoord[1], lng: nextCoord[0] } // next point
-                        );
-                    }
-                    
-                    return {
-                        type: 'Feature',
-                        geometry: {
-                            type: 'Point',
-                            coordinates: coord
-                        },
-                        properties: {
-                            bearing: bearing
-                        }
-                    };
-                })
+            features: features
         };
-    },
+    }
 };
 
 export default trackManager;
