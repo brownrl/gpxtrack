@@ -57,41 +57,6 @@ const trackManager = {
     },
 
     /**
-     * Calculate distance between two points
-     * @param {Object} point1 - First point with lat/lng
-     * @param {Object} point2 - Second point with lat/lng
-     * @returns {number} Distance in meters
-     */
-    calculateDistance(point1, point2) {
-        return this.app.geoUtils().calculateDistance(point1, point2);
-    },
-
-    /**
-     * Calculate bearing between two points
-     */
-    calculateBearing(point1, point2) {
-        return this.app.geoUtils().calculateBearing(point1, point2);
-    },
-
-    /**
-     * Interpolates a point at a specific distance along a line segment
-     * @param {Array} point1 - Starting point coordinates [lon, lat]
-     * @param {Array} point2 - Ending point coordinates [lon, lat]
-     * @param {Number} fraction - Fraction of the distance to interpolate
-     * @returns {Array} Interpolated point coordinates [lon, lat]
-     */
-    interpolatePoint(point1, point2, fraction) {
-        const [lon1, lat1] = point1;
-        const [lon2, lat2] = point2;
-        
-        // Simple linear interpolation
-        const lon = lon1 + (lon2 - lon1) * fraction;
-        const lat = lat1 + (lat2 - lat1) * fraction;
-        
-        return [lon, lat];
-    },
-
-    /**
      * Adds interpolated points to make sure there's a point every X meters
      * @param {Array} coordinates - Array of track coordinates
      * @returns {Array} Interpolated track coordinates
@@ -107,7 +72,7 @@ const trackManager = {
             
             const point1Obj = { lat: point1[1], lng: point1[0] };
             const point2Obj = { lat: point2[1], lng: point2[0] };
-            const segmentDistance = this.calculateDistance(point1Obj, point2Obj);
+            const segmentDistance = this.app.geoUtils().calculateDistance(point1Obj, point2Obj);
             
             if (segmentDistance > this.interpolationDistance) {
                 // Calculate how many points we need to add
@@ -115,8 +80,8 @@ const trackManager = {
                 
                 for (let j = 1; j < numPoints; j++) {
                     const fraction = j / numPoints;
-                    const newPoint = this.interpolatePoint(point1, point2, fraction);
-                    interpolatedPoints.push(newPoint);
+                    const newPoint = this.app.geoUtils().interpolatePoint(point1, point2, fraction);
+                    interpolatedPoints.push([newPoint.lng, newPoint.lat]);
                 }
             }
         }
@@ -137,7 +102,7 @@ const trackManager = {
         for (let i = 1; i < this.trackPoints.length; i++) {
             const point1 = { lat: this.trackPoints[i-1][1], lng: this.trackPoints[i-1][0] };
             const point2 = { lat: this.trackPoints[i][1], lng: this.trackPoints[i][0] };
-            const distance = this.calculateDistance(point1, point2);
+            const distance = this.app.geoUtils().calculateDistance(point1, point2);
             cumulativeDistance += distance;
             this.trackDistances.push(cumulativeDistance);
         }
@@ -296,7 +261,7 @@ const trackManager = {
         for (let i = 0; i < coordinates.length - 1; i += freq) {
             const point1 = { lat: coordinates[i][1], lng: coordinates[i][0] };
             const point2 = { lat: coordinates[i + 1][1], lng: coordinates[i + 1][0] };
-            const bearing = this.calculateBearing(point1, point2);
+            const bearing = this.app.geoUtils().calculateBearing(point1, point2);
 
             features.push({
                 type: 'Feature',

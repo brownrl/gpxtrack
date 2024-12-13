@@ -121,3 +121,6 @@ class App {
 // Create and initialize the application
 const app = new App();
 app.init();
+
+// Expose app to browser console for debugging
+window.app = app;

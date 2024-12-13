@@ -112,7 +112,30 @@ const geoUtils = {
             return { lng: coords[0], lat: coords[1] };
         }
         return coords;
-    }
+    },
+
+    /**
+     * Interpolates a point at a specific distance along a line segment
+     * @param {Array|Object} point1 - Starting point as either:
+     *                              - Array: [longitude, latitude]
+     *                              - Object: {lng: longitude, lat: latitude}
+     * @param {Array|Object} point2 - Ending point in same format as point1
+     * @param {Number} fraction - Fraction of the distance to interpolate (0-1)
+     * @returns {Object} Interpolated point as {lng, lat}
+     */
+    interpolatePoint(point1, point2, fraction) {
+        // Handle both array and object formats
+        const lon1 = Array.isArray(point1) ? point1[0] : point1.lng;
+        const lat1 = Array.isArray(point1) ? point1[1] : point1.lat;
+        const lon2 = Array.isArray(point2) ? point2[0] : point2.lng;
+        const lat2 = Array.isArray(point2) ? point2[1] : point2.lat;
+        
+        // Simple linear interpolation
+        const lng = lon1 + (lon2 - lon1) * fraction;
+        const lat = lat1 + (lat2 - lat1) * fraction;
+        
+        return { lng, lat };
+    },
 };
 
 export default geoUtils;
