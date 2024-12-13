@@ -8,8 +8,13 @@ const locationTracker = {
     paused: false,
     watchId: null,
     currentLocation: null,
-    map: null,
+    
+    // Component references
     app: null,
+    map: null,
+    mapInstance: null,
+    geoUtils: null,
+    progressTracker: null,
     
     // Configuration
     zoomLevel: 16,
@@ -29,7 +34,10 @@ const locationTracker = {
      */
     init(app) {
         this.app = app;
-        this.map = this.app.map().getInstance();
+        this.map = app.map();
+        this.mapInstance = this.map.getInstance();
+        this.geoUtils = app.geoUtils();
+        this.progressTracker = app.progressTracker();
         this.initLocationTracking();
     },
 
@@ -37,17 +45,16 @@ const locationTracker = {
      * Initializes location tracking
      */
     initLocationTracking() {
-
         // Setup location source and layer if they don't exist
-        if (!this.map.getSource('location')) {
-            this.map.addSource('location', {
+        if (!this.mapInstance.getSource('location')) {
+            this.mapInstance.addSource('location', {
                 type: 'geojson',
                 data: {
                     type: 'Point',
                     coordinates: [0, 0]
                 }
             });
-            this.map.addLayer({
+            this.mapInstance.addLayer({
                 id: 'location',
                 type: 'circle',
                 source: 'location',
@@ -58,16 +65,20 @@ const locationTracker = {
             });
         }
 
-        // Start watching position
-        this.watchId = navigator.geolocation.watchPosition(
-            position => this.onLocationUpdate(position),
-            error => console.warn('Location error:', error.message),
-            {
-                enableHighAccuracy: true,
-                timeout: this.locationTimeout,
-                maximumAge: 0
-            }
-        );
+        // Start watching position with timeout
+        const options = {
+            enableHighAccuracy: true,
+            timeout: this.locationTimeout,
+            maximumAge: 0
+        };
+
+        if ("geolocation" in navigator) {
+            this.watchId = navigator.geolocation.watchPosition(
+                position => this.onLocationUpdate(position),
+                error => console.error("Error getting location:", error),
+                options
+            );
+        }
     },
 
     /**
@@ -90,7 +101,7 @@ const locationTracker = {
         let heading = null;
         if (this.previousLocations.length >= 2) {
             const lastPoint = this.previousLocations[this.previousLocations.length - 2];
-            heading = this.app.geoUtils().calculateBearing(lastPoint, newLocation);
+            heading = this.geoUtils.calculateBearing(lastPoint, newLocation);
 
             // Smooth heading changes
             if (this.lastHeading !== null) {
@@ -106,8 +117,8 @@ const locationTracker = {
         }
 
         // Update the location source
-        if (this.map.getSource('location')) {
-            this.map.getSource('location').setData({
+        if (this.mapInstance.getSource('location')) {
+            this.mapInstance.getSource('location').setData({
                 type: 'Point',
                 coordinates: [longitude, latitude]
             });
@@ -115,7 +126,7 @@ const locationTracker = {
             // Animate the map movement with rotation if not paused
             if (!this.paused && !this.isAnimating) {
                 this.isAnimating = true;
-                this.map.flyTo({
+                this.mapInstance.flyTo({
                     center: [longitude, latitude],
                     zoom: this.zoomLevel,
                     bearing: heading || 0,
@@ -129,7 +140,7 @@ const locationTracker = {
         }
 
         // Update progress through app mediator
-        this.app.progressTracker().updateProgress(this.currentLocation);
+        this.progressTracker.updateProgress(this.currentLocation);
     },
 
     /**

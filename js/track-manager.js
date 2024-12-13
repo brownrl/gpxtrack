@@ -9,7 +9,14 @@ const trackManager = {
     trackLineWeight: 4,
     interpolationDistance: 50, // meters
     locationTrackerResumeDelay: 5000, // milliseconds
-    app: null, // Reference to the app mediator
+    
+    // Component references
+    app: null,
+    map: null,
+    mapInstance: null,
+    locationTracker: null,
+    geoUtils: null,
+    progressTracker: null,
 
     // Configuration for direction indicators
     arrowConfig: {
@@ -30,6 +37,11 @@ const trackManager = {
      */
     init(app) {
         this.app = app;
+        this.map = app.map();
+        this.mapInstance = this.map.getInstance();
+        this.locationTracker = app.locationTracker();
+        this.geoUtils = app.geoUtils();
+        this.progressTracker = app.progressTracker();
         this.setupFileInput();
     },
 
@@ -107,7 +119,7 @@ const trackManager = {
      * @param {Array} coordinates - Track coordinates
      */
     async updateMapLayers(coordinates) {
-        const map = this.app.map().getInstance();
+        const map = this.mapInstance;
         
         // Create track line
         this.trackLine = {
@@ -154,8 +166,7 @@ const trackManager = {
         });
 
         // Fit map to track bounds
-        const locationTracker = this.app.locationTracker();
-        locationTracker.pause();  // Pause before fitting bounds
+        this.locationTracker.pause();  // Pause before fitting bounds
 
         const bounds = new mapboxgl.LngLatBounds();
         coordinates.forEach(coord => bounds.extend(coord));
@@ -167,7 +178,7 @@ const trackManager = {
 
         // Resume location tracking after delay
         setTimeout(() => {
-            locationTracker.unpause();
+            this.locationTracker.unpause();
         }, this.locationTrackerResumeDelay);
     },
 
@@ -176,7 +187,7 @@ const trackManager = {
      */
     updateUI() {
         const uiControls = this.app.uiControls();
-        const progressTracker = this.app.progressTracker();
+        const progressTracker = this.progressTracker;
         uiControls.showClearButton();
         progressTracker.showProgressDisplay();
     },
@@ -185,7 +196,7 @@ const trackManager = {
      * Clears the current track from the map
      */
     clearTrack() {
-        const map = this.app.map().getInstance();
+        const map = this.mapInstance;
         
         // Remove layers and sources
         ['track', 'track-directions'].forEach(id => {
@@ -209,7 +220,7 @@ const trackManager = {
 
         // Update UI
         const uiControls = this.app.uiControls();
-        const progressTracker = this.app.progressTracker();
+        const progressTracker = this.progressTracker;
         uiControls.hideClearButton();
         progressTracker.hideProgressDisplay();
     },
@@ -254,7 +265,7 @@ const trackManager = {
             
             const point1Obj = { lat: point1[1], lng: point1[0] };
             const point2Obj = { lat: point2[1], lng: point2[0] };
-            const segmentDistance = this.app.geoUtils().calculateDistance(point1Obj, point2Obj);
+            const segmentDistance = this.geoUtils.calculateDistance(point1Obj, point2Obj);
             
             if (segmentDistance > this.interpolationDistance) {
                 // Calculate how many points we need to add
@@ -262,7 +273,7 @@ const trackManager = {
                 
                 for (let j = 1; j < numPoints; j++) {
                     const fraction = j / numPoints;
-                    const newPoint = this.app.geoUtils().interpolatePoint(point1, point2, fraction);
+                    const newPoint = this.geoUtils.interpolatePoint(point1, point2, fraction);
                     interpolatedPoints.push([newPoint.lng, newPoint.lat]);
                 }
             }
@@ -284,7 +295,7 @@ const trackManager = {
         for (let i = 1; i < this.trackPoints.length; i++) {
             const point1 = { lat: this.trackPoints[i-1][1], lng: this.trackPoints[i-1][0] };
             const point2 = { lat: this.trackPoints[i][1], lng: this.trackPoints[i][0] };
-            const distance = this.app.geoUtils().calculateDistance(point1, point2);
+            const distance = this.geoUtils.calculateDistance(point1, point2);
             cumulativeDistance += distance;
             this.trackDistances.push(cumulativeDistance);
         }
@@ -302,7 +313,7 @@ const trackManager = {
         for (let i = 0; i < coordinates.length - 1; i += freq) {
             const point1 = { lat: coordinates[i][1], lng: coordinates[i][0] };
             const point2 = { lat: coordinates[i + 1][1], lng: coordinates[i + 1][0] };
-            const bearing = this.app.geoUtils().calculateBearing(point1, point2);
+            const bearing = this.geoUtils.calculateBearing(point1, point2);
 
             features.push({
                 type: 'Feature',

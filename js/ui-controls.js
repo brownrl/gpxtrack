@@ -6,7 +6,13 @@
 const uiControls = {
     // Configuration
     hideTimeoutMs: 3000, // Time in milliseconds before UI controls fade out
-    app: null, // Reference to the app mediator
+    
+    // Component references
+    app: null,
+    map: null,
+    mapInstance: null,
+    trackManager: null,
+    locationTracker: null,
 
     /**
      * Initialize with app reference and setup UI controls
@@ -14,6 +20,10 @@ const uiControls = {
      */
     init(app) {
         this.app = app;
+        this.map = app.map();
+        this.mapInstance = this.map.getInstance();
+        this.trackManager = app.trackManager();
+        this.locationTracker = app.locationTracker();
         this.initUIControls();
     },
 
@@ -21,7 +31,6 @@ const uiControls = {
      * Initializes all UI controls and their event listeners
      */
     initUIControls() {
-        const map = this.app.map().getInstance();
         const buttonsContainer = document.querySelector('.ui-controls-container');
         let hideTimeout;
 
@@ -62,8 +71,7 @@ const uiControls = {
          * @param {string} searchTerm - Term to search for in Google Maps
          */
         const handleSearch = (searchTerm) => {
-            const locationTracker = this.app.locationTracker();
-            const currentLocation = locationTracker.getCurrentLocation();
+            const currentLocation = this.locationTracker.getCurrentLocation();
             if (currentLocation) {
                 const mapsUrl = `https://www.google.com/maps/search/${searchTerm}/@${currentLocation.lat},${currentLocation.lng},13z`;
                 window.open(mapsUrl, '_blank');
@@ -74,8 +82,7 @@ const uiControls = {
 
         // Handle maps button click
         document.getElementById('open-maps-btn').addEventListener('click', () => {
-            const locationTracker = this.app.locationTracker();
-            const currentLocation = locationTracker.getCurrentLocation();
+            const currentLocation = this.locationTracker.getCurrentLocation();
             if (currentLocation) {
                 const mapsUrl = `https://www.google.com/maps?q=${currentLocation.lat},${currentLocation.lng}`;
                 window.open(mapsUrl, '_blank');
@@ -139,8 +146,7 @@ const uiControls = {
      * Clears the current track from the map
      */
     clearTrack() {
-        const trackManager = this.app.trackManager();
-        trackManager.clearTrack(this.app.map().getInstance());
+        this.trackManager.clearTrack(this.mapInstance);
     },
 };
 

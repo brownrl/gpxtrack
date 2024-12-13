@@ -7,7 +7,11 @@ const progressTracker = {
     // Configuration
     lastUpdateTime: 0, // Track when we last did a real update
     updateInterval: 60000, // Update interval in milliseconds (default: 1 minute)
-    app: null, // Reference to the app mediator
+    
+    // Component references
+    app: null,
+    trackManager: null,
+    geoUtils: null,
     
     /**
      * Initialize the progress tracker
@@ -15,6 +19,8 @@ const progressTracker = {
      */
     init(app) {
         this.app = app;
+        this.trackManager = app.trackManager();
+        this.geoUtils = app.geoUtils();
     },
 
     /**
@@ -46,15 +52,12 @@ const progressTracker = {
             return;
         }
 
-        if (!this.app || !this.app.trackManager || !this.app.trackManager()) {
+        if (!this.app || !this.trackManager) {
             return;
         }
 
-        const trackManager = this.app.trackManager();
-        const map = this.app.map().getInstance();
-        
-        const trackPoints = trackManager.trackPoints;
-        const trackDistances = trackManager.trackDistances;
+        const trackPoints = this.trackManager.trackPoints;
+        const trackDistances = this.trackManager.trackDistances;
         
         if (!trackPoints || trackPoints.length === 0 || !trackDistances) {
             return;
@@ -101,7 +104,7 @@ const progressTracker = {
      * @returns {number} Distance in meters
      */
     calculateDistance(point1, point2) {
-        return this.app.geoUtils().calculateDistance(point1, point2);
+        return this.geoUtils.calculateDistance(point1, point2);
     }
 };
 
