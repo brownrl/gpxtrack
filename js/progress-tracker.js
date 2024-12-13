@@ -13,6 +13,8 @@ const progressTracker = {
     trackManager: null,
     geoUtils: null,
     progressDisplayId: 'progress-display',
+    offTrack: false,
+    offTrackThreshold: 50, // meters - distance at which user is considered off track
     
     /**
      * Initialize the progress tracker
@@ -71,23 +73,38 @@ const progressTracker = {
             return;
         }
 
-        const trackPoints = this.trackManager.trackPoints;
-        if (!trackPoints || trackPoints.length === 0) {
+        if (!this.trackManager.hasTrack()) {
             return;
         }
 
         // Find the closest track point using track manager
-        const closestIndex = this.trackManager.findClosestPointIndex(currentLocation);
-        if (closestIndex === -1) {
+        const closest = this.trackManager.findClosestPoint(currentLocation);
+        if (!closest) {
             return;
         }
 
-        // Get remaining distance using track manager's helper method
-        const remainingDistance = this.trackManager.getRemainingDistance(closestIndex);
-        const remainingDistanceRounded = (remainingDistance / 1000).toFixed(1);
-
-        // Update distance display
+        // Update distance display with remaining distance
+        const remainingDistanceRounded = (closest.remainingDistance / 1000).toFixed(1);
         this.updateProgressDisplay(remainingDistanceRounded);
+
+        // Check if the user is off track
+        const distanceFromTrack = this.geoUtils.calculateDistance(
+            currentLocation,
+            closest.point
+        );
+
+        const wasOffTrack = this.offTrack;
+        this.offTrack = distanceFromTrack > this.offTrackThreshold;
+
+        // Update visual feedback if off-track status changed
+        const progressElement = this.getProgressDisplayElement();
+        if (progressElement) {
+            if (this.offTrack && !wasOffTrack) {
+                progressElement.classList.add('off-track');
+            } else if (!this.offTrack && wasOffTrack) {
+                progressElement.classList.remove('off-track');
+            }
+        }
 
         // Update the last update time
         this.lastUpdateTime = now;
