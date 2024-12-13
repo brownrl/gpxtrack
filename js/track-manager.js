@@ -302,6 +302,67 @@ const trackManager = {
     },
 
     /**
+     * Gets the total track distance in meters
+     * @returns {number} Total track distance in meters, or 0 if no track is loaded
+     */
+    getTotalDistance() {
+        if (!this.trackDistances || this.trackDistances.length === 0) {
+            return 0;
+        }
+        return this.trackDistances[this.trackDistances.length - 1];
+    },
+
+    /**
+     * Gets the distance covered up to a specific track point
+     * @param {number} pointIndex - Index of the track point
+     * @returns {number} Distance covered in meters up to this point, or 0 if index is invalid
+     */
+    getDistanceCovered(pointIndex) {
+        if (!this.trackDistances || pointIndex < 0 || pointIndex >= this.trackDistances.length) {
+            return 0;
+        }
+        return this.trackDistances[pointIndex];
+    },
+
+    /**
+     * Gets the remaining distance from a specific track point to the end
+     * @param {number} pointIndex - Index of the track point
+     * @returns {number} Remaining distance in meters from this point to the end, or 0 if index is invalid
+     */
+    getRemainingDistance(pointIndex) {
+        const totalDistance = this.getTotalDistance();
+        const coveredDistance = this.getDistanceCovered(pointIndex);
+        return totalDistance - coveredDistance;
+    },
+
+    /**
+     * Finds the index of the track point closest to the given location
+     * @param {Object} location - Location object with lat/lng properties
+     * @returns {number} Index of the closest track point, or -1 if no track is loaded
+     */
+    findClosestPointIndex(location) {
+        if (!this.trackPoints || this.trackPoints.length === 0) {
+            return -1;
+        }
+
+        let closestIndex = -1;
+        let closestDistance = Infinity;
+
+        this.trackPoints.forEach((point, index) => {
+            const distance = this.geoUtils.calculateDistance(
+                location,
+                { lat: point[1], lng: point[0] }
+            );
+            if (distance < closestDistance) {
+                closestDistance = distance;
+                closestIndex = index;
+            }
+        });
+
+        return closestIndex;
+    },
+
+    /**
      * Creates direction points with bearings
      * @param {Array} coordinates - Array of track coordinates
      * @returns {Object} Direction points GeoJSON

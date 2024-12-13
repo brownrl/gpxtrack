@@ -12,6 +12,7 @@ const progressTracker = {
     app: null,
     trackManager: null,
     geoUtils: null,
+    progressDisplayId: 'progress-display',
     
     /**
      * Initialize the progress tracker
@@ -23,21 +24,35 @@ const progressTracker = {
         this.geoUtils = app.geoUtils();
     },
 
+    getProgressDisplayElement() {
+        return document.getElementById(this.progressDisplayId);
+    },
+
     /**
      * Shows the progress display
      */
     showProgressDisplay() {
-        document.getElementById('progress-display').style.display = 'block';
+        this.getProgressDisplayElement().style.display = 'block';
+        this.lastUpdateTime = 0;
     },
 
     /**
      * Hides the progress display
      */
     hideProgressDisplay() {
-        const progressElement = document.getElementById('progress-display');
+        const progressElement = this.getProgressDisplayElement();
         if (progressElement) {
             progressElement.style.display = 'none';
             progressElement.textContent = '';
+            this.lastUpdateTime = 0;
+        }
+    },
+
+    updateProgressDisplay(remainingDistanceRounded) {
+        // Update distance display
+        const progressElement = this.getProgressDisplayElement();
+        if (progressElement) {
+            progressElement.textContent = `${remainingDistanceRounded} km`;
         }
     },
 
@@ -57,44 +72,25 @@ const progressTracker = {
         }
 
         const trackPoints = this.trackManager.trackPoints;
-        const trackDistances = this.trackManager.trackDistances;
-        
-        if (!trackPoints || trackPoints.length === 0 || !trackDistances) {
+        if (!trackPoints || trackPoints.length === 0) {
             return;
         }
 
-        // Find the closest track point
-        let closestIndex = -1;
-        let closestDistance = Infinity;
+        // Find the closest track point using track manager
+        const closestIndex = this.trackManager.findClosestPointIndex(currentLocation);
+        if (closestIndex === -1) {
+            return;
+        }
 
-        trackPoints.forEach((point, index) => {
-            const distance = this.calculateDistance(currentLocation, point);
-            if (distance < closestDistance) {
-                closestDistance = distance;
-                closestIndex = index;
-            }
-        });
-
-        // Get remaining distance from track manager's pre-calculated distances
-        const totalDistance = trackDistances[trackDistances.length - 1];
-        const distanceCovered = trackDistances[closestIndex];
-        const remainingDistance = totalDistance - distanceCovered;
+        // Get remaining distance using track manager's helper method
+        const remainingDistance = this.trackManager.getRemainingDistance(closestIndex);
+        const remainingDistanceRounded = (remainingDistance / 1000).toFixed(1);
 
         // Update distance display
-        const progressElement = document.getElementById('progress-display');
-        if (progressElement) {
-            progressElement.textContent = `${(remainingDistance / 1000).toFixed(1)} km`;
-        }
+        this.updateProgressDisplay(remainingDistanceRounded);
 
         // Update the last update time
         this.lastUpdateTime = now;
-
-        return {
-            closestIndex,
-            remainingDistance,
-            closestDistance,
-            isOffTrack: false
-        };
     },
 
     /**
