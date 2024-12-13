@@ -46,6 +46,10 @@ const progressTracker = {
             return;
         }
 
+        if (!this.app || !this.app.trackManager || !this.app.trackManager()) {
+            return;
+        }
+
         const trackManager = this.app.trackManager();
         const map = this.app.map().getInstance();
         

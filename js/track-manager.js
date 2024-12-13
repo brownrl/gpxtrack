@@ -147,7 +147,7 @@ const trackManager = {
      * Initializes track handling functionality
      */
     initTrackHandling() {
-        const map = this.app.map.getInstance();
+        const map = this.app.map().getInstance();
         const fileInput = document.getElementById('gpx-file');
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
@@ -236,6 +236,9 @@ const trackManager = {
                             const progressTracker = this.app.progressTracker();
                             uiControls.showClearButton();
                             progressTracker.showProgressDisplay();
+
+                            // Resume location tracking
+                            locationTracker.unpause();
                         }
                     }
                 };

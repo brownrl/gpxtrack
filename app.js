@@ -22,6 +22,7 @@ import geoUtils from './js/geo-utils.js';
 
 class App {
     constructor() {
+        // Component name mapping (camelCase to component object)
         this.components = {
             map,
             locationTracker,
@@ -39,12 +40,9 @@ class App {
                     return target[prop];
                 }
 
-                // Convert camelCase to component name (e.g., uiControls -> ui-controls)
-                const componentName = prop.replace(/([A-Z])/g, (match) => match.toLowerCase());
-
                 // If it's a component access, return a function that gets the component
-                if (componentName in target.components) {
-                    return () => target.components[componentName];
+                if (prop in target.components) {
+                    return () => target.components[prop];
                 }
 
                 return undefined;
@@ -57,19 +55,53 @@ class App {
      */
     init() {
         document.addEventListener('DOMContentLoaded', () => {
-            // Initialize all components
-            this.initComponents();
+            // Initialize components in order
+            this.initializeComponentsInOrder();
         });
     }
 
     /**
-     * Initialize all components with references to the app
+     * Initialize components in the correct order to handle dependencies
      */
-    initComponents() {
-        // Initialize each component with a reference to the app
-        Object.values(this.components).forEach(component => {
-            if (component.init) {
-                component.init(this);
+    initializeComponentsInOrder() {
+        // 1. Initialize map and wait for style to load
+        const mapComponent = this.map();
+        if (!mapComponent) {
+            console.error('Map component not found');
+            return;
+        }
+
+        mapComponent.init(this);
+        const mapInstance = mapComponent.getInstance();
+        if (!mapInstance) {
+            console.error('Map instance not initialized');
+            return;
+        }
+        
+        // Wait for map style to load before initializing other components
+        mapInstance.on('style.load', () => {
+            try {
+                // 2. Initialize core utilities
+                const geoUtils = this.geoUtils();
+                if (geoUtils) geoUtils.init(this);
+
+                // 3. Initialize track manager (needed by other components)
+                const trackManager = this.trackManager();
+                if (trackManager) trackManager.init(this);
+
+                // 4. Initialize UI controls
+                const uiControls = this.uiControls();
+                if (uiControls) uiControls.init(this);
+
+                // 5. Initialize progress tracker
+                const progressTracker = this.progressTracker();
+                if (progressTracker) progressTracker.init(this);
+
+                // 6. Initialize location tracker last (as it depends on other components)
+                const locationTracker = this.locationTracker();
+                if (locationTracker) locationTracker.init(this);
+            } catch (error) {
+                console.error('Error initializing components:', error);
             }
         });
     }
