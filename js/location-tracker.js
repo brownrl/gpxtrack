@@ -22,19 +22,32 @@ const locationTracker = {
     zoomLevel: 16,
     circleRadius: 8,
     circleColor: '#0066ff',
-    locationTimeout: 10000,
+    locationTimeout: 30000, // Increased timeout to 30 seconds
+    retryDelay: 5000,      // Delay before retrying after timeout
+    maxRetries: 3,         // Maximum number of retries
+    currentRetry: 0,       // Current retry count
     previousLocations: [], // Store the last locations for bearing calculation
-    headingPoints: 5,     // Reduced from 10 to 5 for more responsive turns
-    minSpeed: 0.5,        // Minimum speed in m/s (1.8 km/h) to update heading
-    maxHeadingChange: 45, // Maximum heading change per update in degrees
-    headingWeights: [0.1, 0.15, 0.2, 0.25, 0.3], // Weights for last 5 points
+    headingPoints: 3,      // Reduced from 5 to 3 points for less frequent updates
+    minSpeed: 0.3,         // Reduced minimum speed threshold (1.08 km/h)
+    maxHeadingChange: 60,  // Increased maximum heading change per update
+    headingWeights: [0.2, 0.3, 0.5], // Adjusted weights for 3 points
     isAnimating: false,   // Track if we're currently animating
     animationDuration: 1000, // Duration in ms for animations
     lastHeading: null,    // Store last heading for smoothing
     minRotationThreshold: 15, // Minimum degrees of change needed to rotate map
     wasJustUnpaused: false, // Track if we just unpaused
-    isFirstLocation: true, // Track if this is the first location update
-
+    isFirstLocation: true,  // Track if this is the first location update
+    lastUpdateTime: 0,     // Last time we updated the map
+    minUpdateInterval: 2000, // Minimum time between map updates (2 seconds)
+    accuracyThreshold: 30,  // Maximum accuracy in meters (more lenient)
+    maxAccuracy: 100,      // Maximum acceptable accuracy in meters
+    speedThresholds: {     // Speed thresholds for different update intervals
+        stationary: 0.2,   // m/s (0.72 km/h)
+        walking: 2,        // m/s (7.2 km/h)
+        running: 4,        // m/s (14.4 km/h)
+        cycling: 8         // m/s (28.8 km/h)
+    },
+    
     /**
      * Initialize with app reference
      * @param {Object} app - The app mediator
@@ -49,7 +62,7 @@ const locationTracker = {
     },
 
     /**
-     * Initializes location tracking
+     * Initialize location tracking
      */
     initLocationTracking() {
         if (!navigator.geolocation) {
@@ -62,10 +75,35 @@ const locationTracker = {
             navigator.geolocation.clearWatch(this.watchId);
         }
 
-        this.isFirstLocation = true; // Reset first location flag
-        this.previousLocations = []; // Clear previous locations
-        this.lastHeading = null;     // Reset heading
+        this.isFirstLocation = true;
+        this.previousLocations = [];
+        this.lastHeading = null;
+        this.lastUpdateTime = 0;
 
+        // Start watching location
+        this.startLocationWatch();
+    },
+
+    /**
+     * Get appropriate update interval based on speed
+     * @param {number} speed - Speed in m/s
+     * @returns {number} Update interval in ms
+     */
+    getUpdateInterval(speed) {
+        if (speed < this.speedThresholds.stationary) return 5000;  // Every 5s when stationary
+        if (speed < this.speedThresholds.walking) return 3000;     // Every 3s when walking slowly
+        if (speed < this.speedThresholds.running) return 2000;     // Every 2s when walking fast/running
+        if (speed < this.speedThresholds.cycling) return 1000;     // Every 1s when cycling
+        return 500;  // Every 0.5s when moving very fast
+    },
+
+    /**
+     * Start watching location with appropriate settings
+     */
+    startLocationWatch() {
+        // Reset retry count when starting fresh
+        this.currentRetry = 0;
+        
         // Setup location source and layer if they don't exist
         if (!this.mapInstance.getSource('location')) {
             this.mapInstance.addSource('location', {
@@ -75,10 +113,11 @@ const locationTracker = {
                     coordinates: [0, 0]
                 }
             });
+
             this.mapInstance.addLayer({
                 id: 'location',
-                type: 'circle',
                 source: 'location',
+                type: 'circle',
                 paint: {
                     'circle-radius': this.circleRadius,
                     'circle-color': this.circleColor
@@ -86,15 +125,29 @@ const locationTracker = {
             });
         }
 
-        // Start watching position
+        const options = {
+            enableHighAccuracy: true,  // Always use high accuracy for outdoor activities
+            timeout: this.locationTimeout,
+            maximumAge: 1000  // Keep a small maximumAge for responsiveness
+        };
+
+        console.log('Starting location watch with options:', JSON.stringify(options));
+
         this.watchId = navigator.geolocation.watchPosition(
-            this.onLocationUpdate.bind(this),
+            (position) => {
+                console.log('Got position update:', {
+                    coords: {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        accuracy: position.coords.accuracy,
+                        speed: position.coords.speed
+                    },
+                    timestamp: position.timestamp
+                });
+                this.onLocationUpdate(position);
+            },
             this.handleLocationError.bind(this),
-            {
-                enableHighAccuracy: true,
-                timeout: this.locationTimeout,
-                maximumAge: 0
-            }
+            options
         );
     },
 
@@ -111,24 +164,32 @@ const locationTracker = {
         const speed = currentPoint.speed || 0;
         if (speed < this.minSpeed) return this.lastHeading;
 
+        // Calculate time since oldest point
+        const timeSpan = currentPoint.timestamp - points[0].timestamp;
+        // If points are too old (> 15 seconds), reduce the number of points used
+        const maxPoints = timeSpan > 15000 ? 2 : this.headingPoints;
+        
+        // Use only the most recent points
+        const recentPoints = points.slice(-maxPoints);
+        
         // Calculate individual headings from recent points
         const headings = [];
-        for (let i = 0; i < points.length - 1; i++) {
+        for (let i = 0; i < recentPoints.length - 1; i++) {
             const heading = this.geoUtils.calculateBearing(
-                points[i].toLatLng(),
-                points[i + 1].toLatLng()
+                recentPoints[i].toLatLng(),
+                recentPoints[i + 1].toLatLng()
             );
             headings.push(heading);
         }
 
         // Add current heading
         const currentHeading = this.geoUtils.calculateBearing(
-            points[points.length - 1].toLatLng(),
+            recentPoints[recentPoints.length - 1].toLatLng(),
             currentPoint.toLatLng()
         );
         headings.push(currentHeading);
 
-        // Apply weighted average
+        // Apply weighted average with dynamic weights
         let smoothedHeading = 0;
         let totalWeight = 0;
         const weights = this.headingWeights.slice(-headings.length);
@@ -148,12 +209,15 @@ const locationTracker = {
 
         smoothedHeading /= totalWeight;
 
+        // Allow larger heading changes when speed is higher
+        const maxChange = Math.min(this.maxHeadingChange * (1 + speed/2), 120);
+        
         // Limit maximum heading change
         if (this.lastHeading !== null) {
             const headingDiff = smoothedHeading - this.lastHeading;
-            if (Math.abs(headingDiff) > this.maxHeadingChange) {
+            if (Math.abs(headingDiff) > maxChange) {
                 smoothedHeading = this.lastHeading + 
-                    (this.maxHeadingChange * Math.sign(headingDiff));
+                    (maxChange * Math.sign(headingDiff));
             }
         }
 
@@ -166,8 +230,29 @@ const locationTracker = {
      * @param {Object} position - Position object with coords
      */
     onLocationUpdate(position) {
+        const currentTime = Date.now();
         const geoPoint = GeoPoint.fromPosition(position);
+        const speed = geoPoint.speed || 0;
+        
+        // Get dynamic update interval based on speed
+        const dynamicInterval = this.getUpdateInterval(speed);
+        const timeSinceLastUpdate = currentTime - this.lastUpdateTime;
+
+        // Skip update if too soon, unless it's first location or unpausing
+        if (!this.isFirstLocation && 
+            !this.wasJustUnpaused && 
+            timeSinceLastUpdate < dynamicInterval) {
+            return;
+        }
+
+        // Skip if accuracy is very poor
+        if (geoPoint.accuracy > this.maxAccuracy) {
+            console.log('Skipping update due to poor accuracy:', geoPoint.accuracy);
+            return;
+        }
+
         this.currentLocation = geoPoint;
+        this.lastUpdateTime = currentTime;
 
         // Add new location to the list for heading calculation
         this.previousLocations.push(geoPoint);
@@ -190,36 +275,28 @@ const locationTracker = {
         if (this.mapInstance.getSource('location')) {
             this.mapInstance.getSource('location').setData(geoPoint.toGeoJSON());
 
-            // Check if we should animate
-            const shouldAnimate = !this.paused && 
-                                !this.isAnimating && 
-                                (this.isFirstLocation ||    // Always animate first location
-                                 this.wasJustUnpaused ||    // Always animate after unpausing
-                                 (heading !== null && geoPoint.speed >= this.minSpeed));
+            // Always animate to new position with zoom
+            this.isAnimating = true;
+            
+            // Adjust animation duration based on speed
+            const animDuration = speed < this.speedThresholds.walking 
+                ? this.animationDuration 
+                : Math.min(this.animationDuration, dynamicInterval * 0.8);
+            
+            this.mapInstance.flyTo({
+                center: geoPoint.toArray(),
+                zoom: this.zoomLevel,
+                bearing: heading || 0,
+                duration: animDuration,
+                essential: true
+            });
+            
+            setTimeout(() => {
+                this.isAnimating = false;
+            }, animDuration);
 
-            if (shouldAnimate) {
-                this.isAnimating = true;
-
-                // For first location or unpausing, ensure we zoom to the proper level
-                const targetZoom = (this.isFirstLocation || this.wasJustUnpaused) 
-                    ? this.zoomLevel 
-                    : this.mapInstance.getZoom();
-
-                this.mapInstance.flyTo({
-                    center: geoPoint.toArray(),
-                    zoom: targetZoom,
-                    bearing: heading || 0, // Use 0 if no heading when unpausing
-                    duration: this.animationDuration,
-                    essential: true
-                });
-
-                setTimeout(() => {
-                    this.isAnimating = false;
-                }, this.animationDuration);
-                
-                this.wasJustUnpaused = false;  // Reset the unpaused flag
-                this.isFirstLocation = false;  // Reset the first location flag
-            }
+            this.wasJustUnpaused = false;
+            this.isFirstLocation = false;
         }
 
         // Update progress through app mediator
@@ -239,7 +316,7 @@ const locationTracker = {
      */
     pause() {
         this.paused = true;
-        if (this.watchId !== null) {
+        if (this.watchId) {
             navigator.geolocation.clearWatch(this.watchId);
             this.watchId = null;
         }
@@ -250,7 +327,7 @@ const locationTracker = {
      */
     resume() {
         this.paused = false;
-        this.wasJustUnpaused = true; // Set flag when unpausing
+        this.wasJustUnpaused = true;
         this.initLocationTracking();
     },
 
@@ -267,7 +344,32 @@ const locationTracker = {
      * @param {Object} error - Error object
      */
     handleLocationError(error) {
-        console.error("Error getting location:", error);
+        const errorMessages = {
+            1: "Location permission denied. Please enable location services for this website.",
+            2: "Location unavailable. Please check your GPS settings.",
+            3: "Location request timed out."
+        };
+
+        console.error("Location error:", errorMessages[error.code] || "Unknown error");
+
+        // Only retry on timeout errors
+        if (error.code === error.TIMEOUT && this.currentRetry < this.maxRetries) {
+            this.currentRetry++;
+            console.log(`Retrying location watch (attempt ${this.currentRetry} of ${this.maxRetries})...`);
+            
+            // Clear existing watch
+            if (this.watchId) {
+                navigator.geolocation.clearWatch(this.watchId);
+                this.watchId = null;
+            }
+
+            // Retry after delay
+            setTimeout(() => {
+                if (!this.paused) {
+                    this.startLocationWatch();
+                }
+            }, this.retryDelay);
+        }
     }
 };
 
