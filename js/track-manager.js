@@ -176,12 +176,9 @@ const trackManager = {
         
         map.fitBounds(bounds, { padding: 50 });
 
-        // Udate the UI
-        this.updateUI();
-
         // Resume location tracking after delay
         setTimeout(() => {
-            this.locationTracker.unpause();
+            this.locationTracker.resume();
         }, this.locationTrackerResumeDelay);
     },
 
