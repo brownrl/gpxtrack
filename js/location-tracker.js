@@ -19,7 +19,7 @@ const locationTracker = {
     watchId: null,
     watchTimeoutId: null,
     currentLocation: null,
-    previousLocations: [], // Store the last location for heading calculation
+    previousLocation: null, // Store the last location for heading calculation
     lastUpdateTime: 0,     // Last time we updated the map
     currentRetry: 0,       // Current retry count
     isAnimating: false,    // Track if we're currently animating
@@ -31,13 +31,13 @@ const locationTracker = {
     circleRadius: 10,
     circleColor: '#0066ff',
     locationEnableHighAccuracy: true,
-    locationMaximumAge: 0,
+    locationMaximumAge: 1000,
     locationTimeout: 10000, // Increased timeout to 30 seconds
     retryDelay: 5000,      // Delay before retrying after timeout
     maxRetries: 3,         // Maximum number of retries
     updateInterval: 5000,  // Fixed 5-second update interval
-    maxAccuracy: 10,      // Maximum acceptable accuracy in meters
-    animationDuration: 5000, // Duration in ms for animations
+    maxAccuracy: 1000,      // Maximum acceptable accuracy in meters
+    animationDuration: 1000, // Duration in ms for animations
     
     /**
      * Initialize with app reference
@@ -65,7 +65,7 @@ const locationTracker = {
         this.clearLocationWatch();
         
         this.forceLocationUpdate = true;
-        this.previousLocations = [];
+        this.previousLocation = null;
         this.lastUpdateTime = 0;
         this.lastGoodPosition = null;
 
@@ -94,6 +94,7 @@ const locationTracker = {
                 maximumAge: this.locationMaximumAge
             }
         );
+        console.log('Location watch started: ' + this.watchId);
     },
 
     /**
@@ -160,9 +161,9 @@ const locationTracker = {
 
         // Calculate heading if we have a previous location
         let heading = null;
-        if (this.previousLocations.length > 0) {
+        if (this.previousLocation) {
             heading = this.calculateHeading(
-                this.previousLocations[this.previousLocations.length - 1],
+                this.previousLocation,
                 geoPoint
             );
         }
@@ -171,7 +172,7 @@ const locationTracker = {
         this.updateMapPosition(geoPoint, heading);
 
         // Store location for next heading calculation
-        this.previousLocations = [geoPoint];
+        this.previousLocation = geoPoint;
         
         // Reset force update flag and update timestamp
         this.forceLocationUpdate = false;
