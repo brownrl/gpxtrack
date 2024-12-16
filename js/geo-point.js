@@ -85,6 +85,26 @@ class GeoPoint {
             }
         };
     }
+
+    /**
+     * Calculate distance to another point in meters
+     * @param {GeoPoint} point - Point to calculate distance to
+     * @returns {number} Distance in meters
+     */
+    distanceTo(point) {
+        const R = 6371e3; // Earth's radius in meters
+        const φ1 = this.lat * Math.PI / 180;
+        const φ2 = point.lat * Math.PI / 180;
+        const Δφ = (point.lat - this.lat) * Math.PI / 180;
+        const Δλ = (point.lng - this.lng) * Math.PI / 180;
+
+        const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                Math.cos(φ1) * Math.cos(φ2) *
+                Math.sin(Δλ/2) * Math.sin(Δλ/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+        return R * c; // Distance in meters
+    }
 }
 
 export default GeoPoint;

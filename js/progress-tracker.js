@@ -60,7 +60,7 @@ const progressTracker = {
 
     /**
      * Updates the progress display with new location
-     * @param {Object} currentLocation - Current location object with lat/lng
+     * @param {GeoPoint} currentLocation - Current location as GeoPoint
      */
     updateProgress(currentLocation) {
         const now = Date.now();
@@ -88,10 +88,7 @@ const progressTracker = {
         this.updateProgressDisplay(remainingDistanceRounded);
 
         // Check if the user is off track
-        const distanceFromTrack = this.geoUtils.calculateDistance(
-            currentLocation,
-            closest.point
-        );
+        const distanceFromTrack = closest.point.distanceTo(currentLocation);
 
         const wasOffTrack = this.offTrack;
         this.offTrack = distanceFromTrack > this.offTrackThreshold;
@@ -106,7 +103,6 @@ const progressTracker = {
             }
         }
 
-        // Update the last update time
         this.lastUpdateTime = now;
     },
 

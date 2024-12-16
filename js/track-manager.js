@@ -258,14 +258,12 @@ const trackManager = {
         const interpolatedPoints = [];
         
         for (let i = 0; i < coordinates.length - 1; i++) {
-            const point1 = coordinates[i];
-            const point2 = coordinates[i + 1];
+            const point1 = GeoPoint.fromArray(coordinates[i]);
+            const point2 = GeoPoint.fromArray(coordinates[i + 1]);
             
-            interpolatedPoints.push(point1);
+            interpolatedPoints.push(coordinates[i]);
             
-            const point1Obj = { lat: point1[1], lng: point1[0] };
-            const point2Obj = { lat: point2[1], lng: point2[0] };
-            const segmentDistance = this.geoUtils.calculateDistance(point1Obj, point2Obj);
+            const segmentDistance = point1.distanceTo(point2);
             
             if (segmentDistance > this.interpolationDistance) {
                 // Calculate how many points we need to add
@@ -273,8 +271,9 @@ const trackManager = {
                 
                 for (let j = 1; j < numPoints; j++) {
                     const fraction = j / numPoints;
-                    const newPoint = this.geoUtils.interpolatePoint(point1, point2, fraction);
-                    interpolatedPoints.push([newPoint.lng, newPoint.lat]);
+                    const lat = point1.lat + (point2.lat - point1.lat) * fraction;
+                    const lng = point1.lng + (point2.lng - point1.lng) * fraction;
+                    interpolatedPoints.push([lng, lat]);
                 }
             }
         }
@@ -295,9 +294,9 @@ const trackManager = {
         // Calculate distances from start and remaining distances
         for (let i = 0; i < this.trackPoints.length; i++) {
             if (i > 0) {
-                const point1 = this.trackPoints[i-1].toLatLng();
-                const point2 = this.trackPoints[i].toLatLng();
-                const distance = this.geoUtils.calculateDistance(point1, point2);
+                const point1 = this.trackPoints[i-1];
+                const point2 = this.trackPoints[i];
+                const distance = point1.distanceTo(point2);
                 cumulativeDistance += distance;
             }
             
@@ -313,9 +312,9 @@ const trackManager = {
     calculateTotalDistance() {
         let totalDistance = 0;
         for (let i = 1; i < this.trackPoints.length; i++) {
-            const point1 = this.trackPoints[i-1].toLatLng();
-            const point2 = this.trackPoints[i].toLatLng();
-            totalDistance += this.geoUtils.calculateDistance(point1, point2);
+            const point1 = this.trackPoints[i-1];
+            const point2 = this.trackPoints[i];
+            totalDistance += point1.distanceTo(point2);
         }
         return totalDistance;
     },
@@ -365,7 +364,7 @@ const trackManager = {
 
     /**
      * Finds the track point closest to the given location
-     * @param {Object} location - Location object with lat/lng properties
+     * @param {GeoPoint} location - Location as GeoPoint
      * @returns {Object|null} Object containing the closest point and its data, or null if no track is loaded
      */
     findClosestPoint(location) {
@@ -380,7 +379,7 @@ const trackManager = {
         
         const point = this.trackPoints[closestIndex];
         return {
-            point: point.toLatLng(),
+            point: point,  // Return GeoPoint directly
             index: closestIndex,
             distanceFromStart: point.distanceFromStart,
             remainingDistance: point.remainingDistance
@@ -389,7 +388,7 @@ const trackManager = {
 
     /**
      * Finds the index of the track point closest to the given location
-     * @param {Object} location - Location object with lat/lng properties
+     * @param {GeoPoint} location - Location as GeoPoint
      * @returns {number} Index of the closest track point, or -1 if no track is loaded
      */
     findClosestPointIndex(location) {
@@ -401,10 +400,7 @@ const trackManager = {
         let closestDistance = Infinity;
 
         this.trackPoints.forEach((point, index) => {
-            const distance = this.geoUtils.calculateDistance(
-                location,
-                point.toLatLng()
-            );
+            const distance = point.distanceTo(location);
             if (distance < closestDistance) {
                 closestDistance = distance;
                 closestIndex = index;
