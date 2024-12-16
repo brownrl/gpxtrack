@@ -35,8 +35,6 @@ const locationTracker = {
     maxRetries: 3,         // Maximum number of retries
     minSpeed: 0.3,        // Minimum speed in m/s (1.08 km/h)
     animationDuration: 1000, // Duration in ms for animations
-    minUpdateInterval: 2000, // Minimum time between map updates (2 seconds)
-    accuracyThreshold: 30,  // Maximum accuracy in meters (more lenient)
     maxAccuracy: 100,      // Maximum acceptable accuracy in meters
     speedThresholds: {     // Speed thresholds for different update intervals
         stationary: 0.2,   // m/s (0.72 km/h)
