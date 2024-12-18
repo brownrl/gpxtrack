@@ -24,6 +24,13 @@ const progressTracker = {
         this.app = app;
         this.trackManager = app.trackManager();
         this.geoUtils = app.geoUtils();
+        this.lastUpdateTime = 0; // Reset on init
+        
+        // Set initial text
+        const element = this.getProgressDisplayElement();
+        if (element) {
+            element.textContent = '---';
+        }
     },
 
     getProgressDisplayElement() {
@@ -34,8 +41,12 @@ const progressTracker = {
      * Shows the progress display
      */
     showProgressDisplay() {
-        this.getProgressDisplayElement().style.display = 'block';
-        this.lastUpdateTime = 0;
+        const element = this.getProgressDisplayElement();
+        if (element) {
+            element.textContent = '...';
+            // Force an immediate update next time by resetting lastUpdateTime
+            this.lastUpdateTime = 0;
+        }
     },
 
     /**
@@ -44,8 +55,9 @@ const progressTracker = {
     hideProgressDisplay() {
         const progressElement = this.getProgressDisplayElement();
         if (progressElement) {
-            progressElement.style.display = 'none';
-            progressElement.textContent = '';
+            progressElement.textContent = '---';
+            progressElement.classList.remove('off-track');
+            this.offTrack = false;
             this.lastUpdateTime = 0;
         }
     },
@@ -55,6 +67,8 @@ const progressTracker = {
         const progressElement = this.getProgressDisplayElement();
         if (progressElement) {
             progressElement.textContent = `${remainingDistanceRounded} km`;
+            // Update lastUpdateTime since we actually updated the display
+            this.lastUpdateTime = Date.now();
         }
     },
 
@@ -64,16 +78,13 @@ const progressTracker = {
      */
     updateProgress(currentLocation) {
         const now = Date.now();
-        // Only update if it's been more than updateInterval milliseconds since last update
+        
+        // Skip if not enough time has passed since last update
         if (now - this.lastUpdateTime < this.updateInterval) {
             return;
         }
 
-        if (!this.app || !this.trackManager) {
-            return;
-        }
-
-        if (!this.trackManager.hasTrack) {
+        if (!this.app || !this.trackManager || !this.trackManager.hasTrack) {
             return;
         }
 
@@ -89,7 +100,6 @@ const progressTracker = {
 
         // Check if the user is off track
         const distanceFromTrack = closest.point.distanceTo(currentLocation);
-
         const wasOffTrack = this.offTrack;
         this.offTrack = distanceFromTrack > this.offTrackThreshold;
 
@@ -102,8 +112,6 @@ const progressTracker = {
                 progressElement.classList.remove('off-track');
             }
         }
-
-        this.lastUpdateTime = now;
     }
 };
 

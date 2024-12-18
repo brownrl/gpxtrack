@@ -70,14 +70,17 @@ body {
     display: none;
 }
 
-.progress-display {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    display: none;
+#progress-display {
+    position: fixed;
+    top: 20px;
+    right: 20px;
     z-index: 1000;
     color: white;
     font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 8px 12px;
+    border-radius: 4px;
 }
 
 @keyframes pulsateRed {
@@ -88,8 +91,7 @@ body {
 
 .off-track {
     animation: pulsateRed 1.5s infinite;
-    background-color: rgba(255, 0, 0, 0.1);
-    border-radius: 4px;
+    background-color: rgba(255, 0, 0, 0.5) !important;
 }
 
 /* Modal styles */
