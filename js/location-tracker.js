@@ -6,6 +6,12 @@
 
 import GeoPoint from './geo-point.js';
 
+const geoLocationOptions = {
+    enableHighAccuracy: true,
+    maximumAge: 4000,
+    timeout: 5000
+};
+
 const locationTracker = {
     // Component references
     app: null,
@@ -56,9 +62,7 @@ const locationTracker = {
             this.watchId = navigator.geolocation.watchPosition(
                 this.handlePositionUpdate.bind(this),
                 this.handleLocationError.bind(this),
-                {
-                    enableHighAccuracy: true
-                }
+                geoLocationOptions
             );
         }
     },

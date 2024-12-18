@@ -48,15 +48,9 @@ body {
     font-size: 20px;
     background-color: #fefefe;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    transition: all 0.3s ease;
     display: flex;
     align-items: center;
     justify-content: center;
-}
-
-.ui-controls-container button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
 
 .gmaps-button {
@@ -84,12 +78,6 @@ body {
     z-index: 1000;
     color: white;
     font-weight: bold;
-}
-
-@keyframes pulsate {
-    0% { opacity: 1; }
-    50% { opacity: 0.7; }
-    100% { opacity: 1; }
 }
 
 @keyframes pulsateRed {
@@ -164,17 +152,11 @@ body {
     border-radius: 12px;
     font-size: 28px;
     cursor: pointer;
-    transition: all 0.3s ease;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     aspect-ratio: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-}
-
-.modal-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
 
 #open-maps-btn { background-color: #FFE4E1; }
@@ -200,53 +182,24 @@ body {
     flex-direction: row;
     align-items: center;
     gap: 10px;
-    transition: opacity 0.3s ease-in-out;
     z-index: 1000;
-}
-
-.gmaps-drawer {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
+    opacity: 1;
+    transition: opacity 0.3s ease;
 }
 
 .drawer-buttons {
+    display: none;
     position: absolute;
     bottom: 100%;
     left: 0;
-    display: flex;
     flex-direction: column;
-    gap: 5px;
-    margin-bottom: 5px;
-    overflow: hidden;
-    max-height: 0;
-    transition: max-height 0.3s ease-out;
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 8px;
-    padding: 0;
+    gap: 10px;
+    margin-bottom: 10px;
+    transition: transform 0.3s ease;
 }
 
 .drawer-buttons.expanded {
-    max-height: 400px;
-    padding: 5px;
-}
-
-.drawer-button {
-    padding: 8px;
-    border: none;
-    background: white;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 16px;
-    transition: background-color 0.2s;
     display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.drawer-button:hover {
-    background-color: #f0f0f0;
 }
 
 button {
@@ -254,26 +207,12 @@ button {
     height: 40px;
     border-radius: 50%;
     border: none;
-    background: white;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    background-color: white;
     cursor: pointer;
-    font-size: 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.2s;
-    padding: 0;
-}
-
-button:hover {
-    transform: scale(1.1);
-}
-
-#progress-display {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    color: white;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-    z-index: 1000;
+    font-size: 20px;
+    color: #333;
 }
