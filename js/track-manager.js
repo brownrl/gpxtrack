@@ -16,8 +16,10 @@ const trackManager = {
     locationTracker: null,
     geoUtils: null,
     progressTracker: null,
+    uiControls: null,
 
     trackPoints: [],
+    hasTrack: false,
 
     /**
      * Initialize with app reference and setup track handling
@@ -30,6 +32,7 @@ const trackManager = {
         this.locationTracker = app.locationTracker();
         this.geoUtils = app.geoUtils();
         this.progressTracker = app.progressTracker();
+        this.uiControls = app.uiControls();
         this.setupFileInput();
     },
 
@@ -56,6 +59,8 @@ const trackManager = {
             await this.processGPXTrack(gpxContent);
         } catch (error) {
             console.error('Error processing GPX file:', error);
+            this.hasTrack = false;
+            this.updateUI();
         }
     },
 
@@ -90,22 +95,26 @@ const trackManager = {
 
         if (trackPoints.length === 0) {
             console.error('No track points found in GPX file');
+            this.hasTrack = false;
+            this.updateUI();
             return;
         }
 
+        // Clear existing track first
+        this.clearTrack();
+        
         this.trackPoints = trackPoints;
         const coordinates = trackPoints.map(point => point.toArray());
         
-        // Clear existing track
-        this.clearTrack();
-        
-        // Update map with new track
-        this.map.updateTrackVisualization({ coordinates });
-        
-        // Calculate distances
+        // Calculate distances for progress tracking
         this.calculateTrackDistances();
         
-        // Update UI
+        // Update map with track visualization
+        this.map.updateTrackVisualization({
+            coordinates: coordinates
+        });
+
+        this.hasTrack = true;
         this.updateUI();
     },
 
@@ -115,16 +124,20 @@ const trackManager = {
     clearTrack() {
         this.trackPoints = [];
         this.map.clearTrackVisualization();
+        this.hasTrack = false;
+        this.updateUI();
     },
 
     /**
-     * Updates UI elements after track processing
+     * Updates UI elements after track changes
      */
     updateUI() {
-        const totalDistance = this.getTotalDistance();
-        const distanceElement = document.getElementById('total-distance');
-        if (distanceElement) {
-            distanceElement.textContent = `Total Distance: ${(totalDistance / 1000).toFixed(2)} km`;
+        if (this.hasTrack) {
+            this.progressTracker.showProgressDisplay();
+            this.uiControls.showClearButton();
+        } else {
+            this.progressTracker.hideProgressDisplay();
+            this.uiControls.hideClearButton();
         }
     },
 
@@ -138,24 +151,26 @@ const trackManager = {
         for (let i = 0; i < coordinates.length - 1; i++) {
             const start = coordinates[i];
             const end = coordinates[i + 1];
-            
             result.push(start);
-            
-            const startPoint = new GeoPoint(start[0], start[1]);
-            const endPoint = new GeoPoint(end[0], end[1]);
-            const distance = startPoint.distanceTo(endPoint);
-            
+
+            const distance = this.geoUtils.calculateDistance(
+                { lat: start[1], lng: start[0] },
+                { lat: end[1], lng: end[0] }
+            );
+
             if (distance > this.interpolationDistance) {
-                const numPoints = Math.floor(distance / this.interpolationDistance);
-                for (let j = 1; j < numPoints; j++) {
-                    const fraction = j / numPoints;
+                const steps = Math.floor(distance / this.interpolationDistance);
+                for (let j = 1; j < steps; j++) {
+                    const fraction = j / steps;
                     const lat = start[1] + (end[1] - start[1]) * fraction;
                     const lng = start[0] + (end[0] - start[0]) * fraction;
                     result.push([lng, lat]);
                 }
             }
         }
-        result.push(coordinates[coordinates.length - 1]);
+        if (coordinates.length > 0) {
+            result.push(coordinates[coordinates.length - 1]);
+        }
         return result;
     },
 
@@ -163,20 +178,36 @@ const trackManager = {
      * Calculates cumulative distances for the track
      */
     calculateTrackDistances() {
-        if (this.trackPoints.length === 0) return;
-
         let cumulativeDistance = 0;
-        this.trackPoints[0].distanceFromStart = 0;
         
-        for (let i = 1; i < this.trackPoints.length; i++) {
-            const distance = this.trackPoints[i].distanceTo(this.trackPoints[i - 1]);
-            cumulativeDistance += distance;
-            this.trackPoints[i].distanceFromStart = cumulativeDistance;
-        }
-
-        const totalDistance = cumulativeDistance;
         for (let i = 0; i < this.trackPoints.length; i++) {
-            this.trackPoints[i].remainingDistance = totalDistance - this.trackPoints[i].distanceFromStart;
+            const point = this.trackPoints[i];
+            
+            if (i > 0) {
+                const prevPoint = this.trackPoints[i - 1];
+                const distance = this.geoUtils.calculateDistance(
+                    prevPoint.toLatLng(),
+                    point.toLatLng()
+                );
+                cumulativeDistance += distance;
+            }
+            
+            point.distanceFromStart = cumulativeDistance;
+            point.remainingDistance = 0; // Will be calculated in reverse
+        }
+        
+        // Calculate remaining distances in reverse
+        let remainingDistance = 0;
+        for (let i = this.trackPoints.length - 1; i >= 0; i--) {
+            this.trackPoints[i].remainingDistance = remainingDistance;
+            
+            if (i > 0) {
+                const distance = this.geoUtils.calculateDistance(
+                    this.trackPoints[i - 1].toLatLng(),
+                    this.trackPoints[i].toLatLng()
+                );
+                remainingDistance += distance;
+            }
         }
     },
 
@@ -185,7 +216,7 @@ const trackManager = {
      * @returns {number} Total track distance in meters, or 0 if no track is loaded
      */
     getTotalDistance() {
-        if (this.trackPoints.length === 0) return 0;
+        if (!this.hasTrack || this.trackPoints.length === 0) return 0;
         return this.trackPoints[this.trackPoints.length - 1].distanceFromStart;
     },
 
@@ -195,7 +226,7 @@ const trackManager = {
      * @returns {number} Distance covered in meters up to this point, or 0 if index is invalid
      */
     getDistanceCovered(pointIndex) {
-        if (pointIndex < 0 || pointIndex >= this.trackPoints.length) return 0;
+        if (!this.hasTrack || pointIndex < 0 || pointIndex >= this.trackPoints.length) return 0;
         return this.trackPoints[pointIndex].distanceFromStart;
     },
 
@@ -205,16 +236,8 @@ const trackManager = {
      * @returns {number} Remaining distance in meters from this point to the end, or 0 if index is invalid
      */
     getRemainingDistance(pointIndex) {
-        if (pointIndex < 0 || pointIndex >= this.trackPoints.length) return 0;
+        if (!this.hasTrack || pointIndex < 0 || pointIndex >= this.trackPoints.length) return 0;
         return this.trackPoints[pointIndex].remainingDistance;
-    },
-
-    /**
-     * Checks if a track is currently loaded
-     * @returns {boolean} True if a track is loaded, false otherwise
-     */
-    hasTrack() {
-        return this.trackPoints.length > 0;
     },
 
     /**
@@ -223,6 +246,8 @@ const trackManager = {
      * @returns {Object|null} Object containing the closest point and its data, or null if no track is loaded
      */
     findClosestPoint(location) {
+        if (!this.hasTrack) return null;
+        
         const index = this.findClosestPointIndex(location);
         if (index === -1) return null;
         
@@ -240,19 +265,24 @@ const trackManager = {
      * @returns {number} Index of the closest track point, or -1 if no track is loaded
      */
     findClosestPointIndex(location) {
-        if (!this.hasTrack()) return -1;
-
+        if (!this.hasTrack || this.trackPoints.length === 0) return -1;
+        
         let minDistance = Infinity;
         let closestIndex = -1;
-
-        this.trackPoints.forEach((point, index) => {
-            const distance = location.distanceTo(point);
+        
+        for (let i = 0; i < this.trackPoints.length; i++) {
+            const point = this.trackPoints[i];
+            const distance = this.geoUtils.calculateDistance(
+                location.toLatLng(),
+                point.toLatLng()
+            );
+            
             if (distance < minDistance) {
                 minDistance = distance;
-                closestIndex = index;
+                closestIndex = i;
             }
-        });
-
+        }
+        
         return closestIndex;
     }
 };

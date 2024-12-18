@@ -73,7 +73,7 @@ const progressTracker = {
             return;
         }
 
-        if (!this.trackManager.hasTrack()) {
+        if (!this.trackManager.hasTrack) {
             return;
         }
 
@@ -104,16 +104,6 @@ const progressTracker = {
         }
 
         this.lastUpdateTime = now;
-    },
-
-    /**
-     * Calculates distance between two points
-     * @param {Object} point1 - First point with lat/lng
-     * @param {Object} point2 - Second point with lat/lng
-     * @returns {number} Distance in meters
-     */
-    calculateDistance(point1, point2) {
-        return this.geoUtils.calculateDistance(point1, point2);
     }
 };
 

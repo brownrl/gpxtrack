@@ -24,7 +24,21 @@ const map = {
             frequency: 4       // Draw arrow every Nth point
         }
     },
+    // Location styling
+    locationStyle: {
+        circle: {
+            radius: 8,
+            color: '#007cbf',
+            opacity: 0.8
+        },
+        animation: {
+            defaultZoom: 16,
+            duration: 1000,
+            essential: true
+        }
+    },
     app: null,
+    locationTracker: null,
 
     /**
      * Initialize the map component
@@ -32,6 +46,7 @@ const map = {
      */
     init(app) {
         this.app = app;
+        this.locationTracker = app.locationTracker();
         this.initMap();
     },
 
@@ -197,7 +212,16 @@ const map = {
         // Fit map to track bounds
         const bounds = new mapboxgl.LngLatBounds();
         coordinates.forEach(coord => bounds.extend(coord));
+        
+        // Pause location tracker while showing full track
+        this.locationTracker.pause();
+        
         this.fitBounds(bounds, { padding: 50 });
+        
+        // Resume location tracker after 5 seconds
+        setTimeout(() => {
+            this.locationTracker.resume();
+        }, 5000);
     },
 
     /**
@@ -230,15 +254,12 @@ const map = {
         
         const ctx = canvas.getContext('2d');
         ctx.fillStyle = color;
+        ctx.font = `${height}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
         
-        // Draw arrow shape
-        ctx.beginPath();
-        ctx.moveTo(0, height/2);
-        ctx.lineTo(width/2, 0);
-        ctx.lineTo(width, height/2);
-        ctx.lineTo(width/2, height);
-        ctx.closePath();
-        ctx.fill();
+        // Draw the ^ character
+        ctx.fillText('^', width/2, height/2);
         
         return ctx.getImageData(0, 0, width, height);
     },
@@ -301,9 +322,9 @@ const map = {
      */
     updateLocationVisualization(geoPoint, heading, options = {}) {
         const {
-            zoom = null,
+            zoom = this.locationStyle.animation.defaultZoom,
             animate = true,
-            duration = 1000
+            duration = this.locationStyle.animation.duration
         } = options;
 
         // Update the location source
@@ -313,10 +334,10 @@ const map = {
             if (animate) {
                 this.mapInstance.flyTo({
                     center: geoPoint.toArray(),
-                    zoom: zoom !== null ? zoom : this.mapInstance.getZoom(),
+                    zoom: zoom,
                     bearing: heading !== null ? heading : this.mapInstance.getBearing(),
                     duration: duration,
-                    essential: true
+                    essential: this.locationStyle.animation.essential
                 });
             } else {
                 this.mapInstance.setCenter(geoPoint.toArray());
@@ -331,10 +352,10 @@ const map = {
      * @param {Object} options - Visualization options
      */
     setupLocationVisualization(options = {}) {
-        const {
-            circleRadius = 8,
-            circleColor = '#007cbf'
-        } = options;
+        const style = {
+            ...this.locationStyle.circle,
+            ...options
+        };
 
         if (!this.mapInstance.getSource('location')) {
             this.mapInstance.addSource('location', {
@@ -350,8 +371,9 @@ const map = {
                 source: 'location',
                 type: 'circle',
                 paint: {
-                    'circle-radius': circleRadius,
-                    'circle-color': circleColor
+                    'circle-radius': style.radius,
+                    'circle-color': style.color,
+                    'circle-opacity': style.opacity
                 }
             });
         }
