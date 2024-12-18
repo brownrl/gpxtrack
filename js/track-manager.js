@@ -86,32 +86,33 @@ const trackManager = {
         const parser = new DOMParser();
         const gpx = parser.parseFromString(gpxContent, 'text/xml');
         
-        // Extract track points
+        // Extract track points as GeoPoints
         const trackPoints = Array.from(gpx.getElementsByTagName('trkpt')).map(point => {
+            // GPX uses lat/lon attributes
             const lat = parseFloat(point.getAttribute('lat'));
             const lon = parseFloat(point.getAttribute('lon'));
+            // GeoPoint constructor takes (lng, lat)
             return new GeoPoint(lon, lat);
         });
 
         if (trackPoints.length === 0) {
             console.error('No track points found in GPX file');
-            this.hasTrack = false;
-            this.updateUI();
+            this.clearTrack();
             return;
         }
 
-        // Clear existing track first
-        this.clearTrack();
+        // Clear map visualization first but don't update UI yet
+        this.map.clearTrackVisualization();
         
-        this.trackPoints = trackPoints;
-        const coordinates = trackPoints.map(point => point.toArray());
+        // Interpolate points to ensure even spacing
+        this.trackPoints = this.interpolateTrackPoints(trackPoints);
         
         // Calculate distances for progress tracking
         this.calculateTrackDistances();
         
-        // Update map with track visualization
+        // Update map with track visualization (Mapbox expects [lng, lat])
         this.map.updateTrackVisualization({
-            coordinates: coordinates
+            coordinates: this.trackPoints.map(point => point.toArray())
         });
 
         this.hasTrack = true;
@@ -122,8 +123,19 @@ const trackManager = {
      * Clears the current track
      */
     clearTrack() {
+        // Clear data
         this.trackPoints = [];
+        
+        // Clear visualization
         this.map.clearTrackVisualization();
+        
+        // Clear file input
+        const fileInput = document.getElementById('gpx-file');
+        if (fileInput) {
+            fileInput.value = '';
+        }
+        
+        // Update state and UI
         this.hasTrack = false;
         this.updateUI();
     },
@@ -143,33 +155,35 @@ const trackManager = {
 
     /**
      * Adds interpolated points to make sure there's a point every X meters
-     * @param {Array} coordinates - Array of track coordinates
-     * @returns {Array} Interpolated track coordinates
+     * @param {Array<GeoPoint>} points - Array of track points
+     * @returns {Array<GeoPoint>} Interpolated track points
      */
-    interpolateTrackPoints(coordinates) {
+    interpolateTrackPoints(points) {
         const result = [];
-        for (let i = 0; i < coordinates.length - 1; i++) {
-            const start = coordinates[i];
-            const end = coordinates[i + 1];
+        for (let i = 0; i < points.length - 1; i++) {
+            const start = points[i];
+            const end = points[i + 1];
             result.push(start);
 
             const distance = this.geoUtils.calculateDistance(
-                { lat: start[1], lng: start[0] },
-                { lat: end[1], lng: end[0] }
+                start.toLatLng(),
+                end.toLatLng()
             );
 
             if (distance > this.interpolationDistance) {
                 const steps = Math.floor(distance / this.interpolationDistance);
                 for (let j = 1; j < steps; j++) {
                     const fraction = j / steps;
-                    const lat = start[1] + (end[1] - start[1]) * fraction;
-                    const lng = start[0] + (end[0] - start[0]) * fraction;
-                    result.push([lng, lat]);
+                    // Linear interpolation between points
+                    const lng = start.lng + (end.lng - start.lng) * fraction;
+                    const lat = start.lat + (end.lat - start.lat) * fraction;
+                    // GeoPoint constructor takes (lng, lat)
+                    result.push(new GeoPoint(lng, lat));
                 }
             }
         }
-        if (coordinates.length > 0) {
-            result.push(coordinates[coordinates.length - 1]);
+        if (points.length > 0) {
+            result.push(points[points.length - 1]);
         }
         return result;
     },

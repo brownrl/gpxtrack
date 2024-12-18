@@ -15,7 +15,7 @@ const map = {
     },
     // Track styling
     trackStyle: {
-        lineColor: '#ff0000', // red
+        lineColor: '#FF0000', // red
         lineWeight: 4,
         arrowConfig: {
             width: 24,
@@ -28,8 +28,8 @@ const map = {
     locationStyle: {
         circle: {
             radius: 8,
-            color: '#007cbf',
-            opacity: 0.8
+            color: '#00FFFF',
+            opacity: 1
         },
         animation: {
             defaultZoom: 16,
@@ -240,6 +240,10 @@ const map = {
         if (this.mapInstance.getSource('track')) {
             this.removeSource('track');
         }
+        // Remove the direction arrow image
+        if (this.mapInstance.hasImage('direction-arrow')) {
+            this.mapInstance.removeImage('direction-arrow');
+        }
     },
 
     /**
@@ -299,51 +303,27 @@ const map = {
     },
 
     /**
-     * Get the track line color
-     * @returns {string} Track line color
-     */
-    getTrackLineColor() {
-        return this.trackStyle.lineColor;
-    },
-
-    /**
-     * Get the track line weight
-     * @returns {number} Track line weight
-     */
-    getTrackLineWeight() {
-        return this.trackStyle.lineWeight;
-    },
-
-    /**
      * Update location visualization on the map
      * @param {GeoPoint} geoPoint - Position to update to
      * @param {number|null} heading - Optional heading in degrees
      * @param {Object} options - Animation options
      */
-    updateLocationVisualization(geoPoint, heading, options = {}) {
-        const {
-            zoom = this.locationStyle.animation.defaultZoom,
-            animate = true,
-            duration = this.locationStyle.animation.duration
-        } = options;
+    updateLocationVisualization(geoPoint, heading) {
+        
 
         // Update the location source
         if (this.mapInstance.getSource('location')) {
             this.mapInstance.getSource('location').setData(geoPoint.toGeoJSON());
 
-            if (animate) {
-                this.mapInstance.flyTo({
-                    center: geoPoint.toArray(),
-                    zoom: zoom,
-                    bearing: heading !== null ? heading : this.mapInstance.getBearing(),
-                    duration: duration,
-                    essential: this.locationStyle.animation.essential
-                });
-            } else {
-                this.mapInstance.setCenter(geoPoint.toArray());
-                if (zoom !== null) this.mapInstance.setZoom(zoom);
-                if (heading !== null) this.mapInstance.setBearing(heading);
-            }
+            
+            this.mapInstance.flyTo({
+                center: geoPoint.toArray(),
+                zoom: this.locationStyle.animation.defaultZoom,
+                bearing: heading !== null ? heading : this.mapInstance.getBearing(),
+                duration: this.locationStyle.animation.duration,
+                essential: this.locationStyle.animation.essential
+            });
+            
         }
     },
 
@@ -351,11 +331,8 @@ const map = {
      * Setup location visualization on the map
      * @param {Object} options - Visualization options
      */
-    setupLocationVisualization(options = {}) {
-        const style = {
-            ...this.locationStyle.circle,
-            ...options
-        };
+    setupLocationVisualization() {
+        
 
         if (!this.mapInstance.getSource('location')) {
             this.mapInstance.addSource('location', {
@@ -371,9 +348,9 @@ const map = {
                 source: 'location',
                 type: 'circle',
                 paint: {
-                    'circle-radius': style.radius,
-                    'circle-color': style.color,
-                    'circle-opacity': style.opacity
+                    'circle-radius': this.locationStyle.circle.radius,
+                    'circle-color': this.locationStyle.circle.color,
+                    'circle-opacity': this.locationStyle.circle.opacity
                 }
             });
         }

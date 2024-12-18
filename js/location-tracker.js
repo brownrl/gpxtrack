@@ -9,7 +9,7 @@ import GeoPoint from './geo-point.js';
 const geoLocationOptions = {
     enableHighAccuracy: true,
     maximumAge: 4000,
-    timeout: 5000
+    timeout: 60000
 };
 
 const locationTracker = {
@@ -26,6 +26,7 @@ const locationTracker = {
     updateTimer: null,
     isPaused: false,
     previousLocation: null,
+    mapNeedsUpdating: true,
 
     /**
      * Initialize with app reference
@@ -78,9 +79,7 @@ const locationTracker = {
         
         // Start new update cycle
         this.updateTimer = setInterval(() => {
-            if (!this.isPaused && this.currentLocation) {
                 this.updateMap();
-            }
         }, this.updateInterval);
     },
 
@@ -96,6 +95,12 @@ const locationTracker = {
 
         // Update current location
         this.currentLocation = geoPoint;
+
+        // Update map if needed
+        if (this.mapNeedsUpdating) {
+            this.mapNeedsUpdating = false;
+            this.updateMap();
+        }
     },
 
     /**
@@ -103,6 +108,8 @@ const locationTracker = {
      */
     updateMap() {
         if (!this.currentLocation) return;
+
+        if (this.isPaused) return;
 
         // Calculate heading if we have a previous location
         let heading = null;
@@ -164,6 +171,7 @@ const locationTracker = {
      */
     resume() {
         this.isPaused = false;
+        this.mapNeedsUpdating = true;
     },
 
     /**
