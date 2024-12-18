@@ -43,7 +43,7 @@ const progressTracker = {
     showProgressDisplay() {
         const element = this.getProgressDisplayElement();
         if (element) {
-            element.textContent = '...';
+            element.textContent = '***';
             // Force an immediate update next time by resetting lastUpdateTime
             this.lastUpdateTime = 0;
         }
@@ -100,6 +100,11 @@ const progressTracker = {
 
         // Check if the user is off track
         const distanceFromTrack = closest.point.distanceTo(currentLocation);
+        this.handleOffTrack(distanceFromTrack);
+    },
+
+    handleOffTrack(distanceFromTrack) {
+        // Update distance display with remaining distance
         const wasOffTrack = this.offTrack;
         this.offTrack = distanceFromTrack > this.offTrackThreshold;
 
