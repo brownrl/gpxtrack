@@ -13,16 +13,17 @@ const geoLocationOptions = {
 };
 
 const locationTracker = {
+    // Configuration
+    updateInterval: 5000, // 5 seconds
+
     // Component references
-    app: null,
     map: null,
     geoUtils: null,
     progressTracker: null,
 
-    // Location tracking state
+    // Runtime variables
     watchId: null,
     currentLocation: null,
-    updateInterval: 5000, // 5 seconds
     updateTimer: null,
     isPaused: false,
     previousLocation: null,
@@ -32,7 +33,6 @@ const locationTracker = {
      * @param {Object} app - The app mediator
      */
     init(app) {
-        this.app = app;
         this.map = app.map();
         this.geoUtils = app.geoUtils();
         this.progressTracker = app.progressTracker();

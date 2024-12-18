@@ -4,27 +4,28 @@
  */
 
 const progressTracker = {
+
     // Configuration
-    lastUpdateTime: 0, // Track when we last did a real update
     updateInterval: 60000, // Update interval in milliseconds (default: 1 minute)
-    
+    progressDisplayId: 'progress-display',
+    offTrackThreshold: 50, // meters - distance at which user is considered off track
+
     // Component references
-    app: null,
     trackManager: null,
     geoUtils: null,
-    progressDisplayId: 'progress-display',
+
+    // Runtime variables
     offTrack: false,
-    offTrackThreshold: 50, // meters - distance at which user is considered off track
+    lastUpdateTime: 0, // Track when we last did a real update
+
     
     /**
      * Initialize the progress tracker
      * @param {Object} app - Reference to the app mediator
      */
     init(app) {
-        this.app = app;
         this.trackManager = app.trackManager();
         this.geoUtils = app.geoUtils();
-        this.lastUpdateTime = 0; // Reset on init
         
         // Set initial text
         const element = this.getProgressDisplayElement();
@@ -84,7 +85,7 @@ const progressTracker = {
             return;
         }
 
-        if (!this.app || !this.trackManager || !this.trackManager.hasTrack) {
+        if (!this.trackManager || !this.trackManager.hasTrack) {
             return;
         }
 

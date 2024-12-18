@@ -6,22 +6,32 @@
 const uiControls = {
     // Configuration
     hideTimeoutMs: 3000, // Time in milliseconds before UI controls fade out
+    buttonIds: {
+        openMaps: 'open-maps-btn',
+        openLodging: 'open-lodging-btn',
+        openMarket: 'open-market-btn',
+        openCamping: 'open-camping-btn',
+        openRestaurant: 'open-restaurant-btn',
+        openHospital: 'open-hospital-btn',
+        clear: 'clear-button',
+        filePicker: 'file-picker-button'
+    },
     
     // Component references
-    app: null,
-    map: null,
-    mapInstance: null,
     trackManager: null,
     locationTracker: null,
+
+    // Runtime variables
+    buttonsContainer: null,
+    hideTimeout: null,
+    drawerButtons: null,
+    gmapsButton: null,
 
     /**
      * Initialize with app reference and setup UI controls
      * @param {Object} app - The app mediator
      */
     init(app) {
-        this.app = app;
-        this.map = app.map();
-        this.mapInstance = this.map.getInstance();
         this.trackManager = app.trackManager();
         this.locationTracker = app.locationTracker();
         this.initUIControls();
@@ -31,7 +41,9 @@ const uiControls = {
      * Initializes all UI controls and their event listeners
      */
     initUIControls() {
-        const buttonsContainer = document.querySelector('.ui-controls-container');
+        this.buttonsContainer = document.querySelector('.ui-controls-container');
+        this.drawerButtons = document.querySelector('.drawer-buttons');
+        this.gmapsButton = document.querySelector('.gmaps-button');
         let hideTimeout;
 
         /**
@@ -40,9 +52,9 @@ const uiControls = {
          */
         const resetHideTimeout = () => {
             clearTimeout(hideTimeout);
-            buttonsContainer.style.opacity = '1';
+            this.buttonsContainer.style.opacity = '1';
             hideTimeout = setTimeout(() => {
-                buttonsContainer.style.opacity = '0';
+                this.buttonsContainer.style.opacity = '0';
             }, this.hideTimeoutMs);
         };
 
@@ -61,58 +73,39 @@ const uiControls = {
             document.querySelector('.clear-button').style.display = 'none';
         };
 
-        // Initialize Google Maps drawer controls
-        const drawerButtons = document.querySelector('.drawer-buttons');
-        const gmapsButton = document.querySelector('.gmaps-button');
-        
-        /**
-         * Handles search requests to Google Maps
-         * Opens Google Maps in a new tab with the search term
-         * @param {string} searchTerm - Term to search for in Google Maps
-         */
-        const handleSearch = (searchTerm) => {
-            const currentLocation = this.locationTracker.getCurrentLocation();
-            if (currentLocation) {
-                const mapsUrl = `https://www.google.com/maps/search/${searchTerm}/@${currentLocation.lat},${currentLocation.lng},13z`;
-                window.open(mapsUrl, '_blank');
-            }
-            drawerButtons.classList.remove('expanded');
-            resetHideTimeout();
-        };
-
         // Handle maps button click
-        document.getElementById('open-maps-btn').addEventListener('click', () => {
+        document.getElementById(this.buttonIds.openMaps).addEventListener('click', () => {
             const currentLocation = this.locationTracker.getCurrentLocation();
             if (currentLocation) {
                 const mapsUrl = `https://www.google.com/maps?q=${currentLocation.lat},${currentLocation.lng}`;
                 window.open(mapsUrl, '_blank');
             }
-            drawerButtons.classList.remove('expanded');
+            this.drawerButtons.classList.remove('expanded');
             resetHideTimeout();
         });
 
         // Add click handlers for all search buttons
         [
-            ['open-lodging-btn', 'lodging'],
-            ['open-market-btn', 'supermarket'],
-            ['open-camping-btn', 'camping'],
-            ['open-restaurant-btn', 'restaurant'],
-            ['open-hospital-btn', 'hospital']
+            [this.buttonIds.openLodging, 'lodging'],
+            [this.buttonIds.openMarket, 'supermarket'],
+            [this.buttonIds.openCamping, 'camping'],
+            [this.buttonIds.openRestaurant, 'restaurant'],
+            [this.buttonIds.openHospital, 'hospital']
         ].forEach(([id, search]) => {
             document.getElementById(id).addEventListener('click', () => handleSearch(search));
         });
 
-        gmapsButton.addEventListener('click', () => {
-            drawerButtons.classList.toggle('expanded');
+        this.gmapsButton.addEventListener('click', () => {
+            this.drawerButtons.classList.toggle('expanded');
             // Don't auto-hide controls when drawer is open
             clearTimeout(hideTimeout);
-            buttonsContainer.style.opacity = '1';
+            this.buttonsContainer.style.opacity = '1';
         });
 
         // Close drawer when clicking outside
         document.addEventListener('click', (event) => {
             if (!event.target.closest('.gmaps-drawer')) {
-                drawerButtons.classList.remove('expanded');
+                this.drawerButtons.classList.remove('expanded');
                 resetHideTimeout();
             }
         });
@@ -143,10 +136,37 @@ const uiControls = {
     },
 
     /**
+     * Handles search requests to Google Maps
+     * Opens Google Maps in a new tab with the search term
+     * @param {string} searchTerm - Term to search for in Google Maps
+     */
+    handleSearch(searchTerm) {
+        const currentLocation = this.locationTracker.getCurrentLocation();
+        if (currentLocation) {
+            const mapsUrl = `https://www.google.com/maps/search/${searchTerm}/@${currentLocation.lat},${currentLocation.lng},13z`;
+            window.open(mapsUrl, '_blank');
+        }
+        this.drawerButtons.classList.remove('expanded');
+        this.resetHideTimeout();
+    },
+
+    /**
+     * Resets the auto-hide timeout for UI controls
+     * Makes controls visible and sets timeout to hide them
+     */
+    resetHideTimeout() {
+        clearTimeout(this.hideTimeout);
+        this.buttonsContainer.style.opacity = '1';
+        this.hideTimeout = setTimeout(() => {
+            this.buttonsContainer.style.opacity = '0';
+        }, this.hideTimeoutMs);
+    },
+
+    /**
      * Clears the current track from the map
      */
     clearTrack() {
-        this.trackManager.clearTrack(this.mapInstance);
+        this.trackManager.clearTrack();
     },
 };
 

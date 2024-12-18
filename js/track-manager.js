@@ -6,18 +6,19 @@
 import GeoPoint from './geo-point.js';
 
 const trackManager = {
+    // Configuration
     interpolationDistance: 50, // meters
     locationTrackerResumeDelay: 5000, // milliseconds
+    maxSearchDistance: 1000,  // maximum distance to search for closest point
     
     // Component references
-    app: null,
     map: null,
-    mapInstance: null,
     locationTracker: null,
     geoUtils: null,
     progressTracker: null,
     uiControls: null,
 
+    // Runtime variables
     trackPoints: [],
     hasTrack: false,
 
@@ -26,9 +27,7 @@ const trackManager = {
      * @param {Object} app - The app mediator
      */
     init(app) {
-        this.app = app;
         this.map = app.map();
-        this.mapInstance = this.map.getInstance();
         this.locationTracker = app.locationTracker();
         this.geoUtils = app.geoUtils();
         this.progressTracker = app.progressTracker();

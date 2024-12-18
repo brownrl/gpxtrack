@@ -5,7 +5,6 @@
 
 const map = {
     // Configuration
-    mapInstance: null,
     defaultConfig: {
         container: 'map',
         style: 'mapbox://styles/brownrl/cm48cuxe6014o01si62vr078z',
@@ -13,7 +12,6 @@ const map = {
         zoom: 4, // Zoom level to show Europe
         interactive: false // Disable interactions by default
     },
-    // Track styling
     trackStyle: {
         lineColor: '#FF0000', // red
         lineWeight: 4,
@@ -24,7 +22,6 @@ const map = {
             frequency: 4       // Draw arrow every Nth point
         }
     },
-    // Location styling
     locationStyle: {
         circle: {
             radius: 8,
@@ -37,8 +34,15 @@ const map = {
             essential: true
         }
     },
+    
+    // Component references
     app: null,
+    mapInstance: null,
     locationTracker: null,
+
+    // Runtime variables
+    trackLine: null,
+
 
     /**
      * Initialize the map component
