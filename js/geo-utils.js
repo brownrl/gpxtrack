@@ -71,71 +71,7 @@ const geoUtils = {
         
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         return R * c;
-    },
-
-    /**
-     * Creates a chevron icon for direction indicators
-     * @param {number} bearing - Bearing in degrees
-     * @returns {mapboxgl.Marker} Chevron icon marker
-     */
-    createChevronIcon(bearing) {
-        // Get the map instance from the map component
-        const map = this.app.map().getInstance();
-        if (!map) return null;
-
-        return new mapboxgl.Marker({
-            color: 'blue',
-            draggable: false,
-            rotation: bearing
-        });
-    },
-
-    /**
-     * Formats a distance in meters to a human-readable string
-     * @param {number} meters - Distance in meters
-     * @returns {string} Formatted distance (e.g., "1.2 km" or "800 m")
-     */
-    formatDistance(meters) {
-        if (meters >= 1000) {
-            return `${(meters / 1000).toFixed(1)} km`;
-        }
-        return `${Math.round(meters)} m`;
-    },
-
-    /**
-     * Converts coordinates to a consistent format
-     * @param {Array|Object} coords - Coordinates in array [lon, lat] or object {lng, lat} format
-     * @returns {Object} Coordinates in {lng, lat} format
-     */
-    normalizeCoordinates(coords) {
-        if (Array.isArray(coords)) {
-            return { lng: coords[0], lat: coords[1] };
-        }
-        return coords;
-    },
-
-    /**
-     * Interpolates a point at a specific distance along a line segment
-     * @param {Array|Object} point1 - Starting point as either:
-     *                              - Array: [longitude, latitude]
-     *                              - Object: {lng: longitude, lat: latitude}
-     * @param {Array|Object} point2 - Ending point in same format as point1
-     * @param {Number} fraction - Fraction of the distance to interpolate (0-1)
-     * @returns {Object} Interpolated point as {lng, lat}
-     */
-    interpolatePoint(point1, point2, fraction) {
-        // Handle both array and object formats
-        const lon1 = Array.isArray(point1) ? point1[0] : point1.lng;
-        const lat1 = Array.isArray(point1) ? point1[1] : point1.lat;
-        const lon2 = Array.isArray(point2) ? point2[0] : point2.lng;
-        const lat2 = Array.isArray(point2) ? point2[1] : point2.lat;
-        
-        // Simple linear interpolation
-        const lng = lon1 + (lon2 - lon1) * fraction;
-        const lat = lat1 + (lat2 - lat1) * fraction;
-        
-        return { lng, lat };
-    },
+    }
 };
 
 export default geoUtils;
