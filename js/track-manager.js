@@ -6,9 +6,6 @@
 import GeoPoint from './geo-point.js';
 
 const trackManager = {
-    // Default properties for the track line and points
-    trackLineColor: '#ff0000', // red
-    trackLineWeight: 4,
     interpolationDistance: 50, // meters
     locationTrackerResumeDelay: 5000, // milliseconds
     
@@ -20,18 +17,7 @@ const trackManager = {
     geoUtils: null,
     progressTracker: null,
 
-    // Configuration for direction indicators
-    arrowConfig: {
-        width: 24,
-        height: 24,
-        color: '#FFFFFF',  // Brighter color
-        frequency: 4        // Draw arrow every Nth point
-    },
-
     trackPoints: [],
-    trackLine: null,
-    directionMarkers: [],
-    trackIsLoaded: false,
 
     /**
      * Initialize with app reference and setup track handling
@@ -52,7 +38,9 @@ const trackManager = {
      */
     setupFileInput() {
         const fileInput = document.getElementById('gpx-file');
-        fileInput.addEventListener('change', (e) => this.handleFileSelection(e));
+        if (fileInput) {
+            fileInput.addEventListener('change', this.handleFileSelection.bind(this));
+        }
     },
 
     /**
@@ -62,9 +50,6 @@ const trackManager = {
     async handleFileSelection(e) {
         const file = e.target.files[0];
         if (!file) return;
-
-        const fileInput = e.target;
-        fileInput.value = ''; // Reset file input
 
         try {
             const gpxContent = await this.readGPXFile(file);
@@ -93,160 +78,54 @@ const trackManager = {
      * @param {string} gpxContent - GPX file content
      */
     async processGPXTrack(gpxContent) {
+        const parser = new DOMParser();
+        const gpx = parser.parseFromString(gpxContent, 'text/xml');
+        
+        // Extract track points
+        const trackPoints = Array.from(gpx.getElementsByTagName('trkpt')).map(point => {
+            const lat = parseFloat(point.getAttribute('lat'));
+            const lon = parseFloat(point.getAttribute('lon'));
+            return new GeoPoint(lon, lat);
+        });
+
+        if (trackPoints.length === 0) {
+            console.error('No track points found in GPX file');
+            return;
+        }
+
+        this.trackPoints = trackPoints;
+        const coordinates = trackPoints.map(point => point.toArray());
+        
+        // Clear existing track
         this.clearTrack();
-
-        // Parse GPX to GeoJSON
-        const gpx = new DOMParser().parseFromString(gpxContent, 'text/xml');
-        const converted = toGeoJSON.gpx(gpx);
-
-        if (!converted.features.length) return;
-
-        const coordinates = converted.features[0].geometry.coordinates;
-        if (!coordinates.length) return;
-
-        // Process track data
-        const interpolatedCoordinates = this.interpolateTrackPoints(coordinates);
-        this.trackPoints = interpolatedCoordinates.map(coord => GeoPoint.fromArray(coord));
+        
+        // Update map with new track
+        this.map.updateTrackVisualization({ coordinates });
+        
+        // Calculate distances
         this.calculateTrackDistances();
-
-        // Update map layers
-        await this.updateMapLayers(this.trackPoints.map(point => point.toArray()));
         
         // Update UI
         this.updateUI();
-        this.trackIsLoaded = true;
     },
 
     /**
-     * Updates map layers with track data
-     * @param {Array} coordinates - Track coordinates
+     * Clears the current track
      */
-    async updateMapLayers(coordinates) {
-        const map = this.mapInstance;
-        
-        // Create track line
-        this.trackLine = {
-            'type': 'Feature',
-            'geometry': {
-                'type': 'LineString',
-                'coordinates': coordinates
-            }
-        };
-
-        // Add track line layer
-        map.addSource('track', {
-            'type': 'geojson',
-            'data': this.trackLine
-        });
-        map.addLayer({
-            'id': 'track',
-            'type': 'line',
-            'source': 'track',
-            'paint': {
-                'line-color': this.trackLineColor,
-                'line-width': this.trackLineWeight
-            }
-        });
-
-        // Add direction indicators
-        const directionPoints = this.createDirectionPoints(coordinates);
-        map.addImage('direction-arrow', this.createArrowImage());
-        map.addSource('track-directions', {
-            'type': 'geojson',
-            'data': directionPoints
-        });
-        map.addLayer({
-            'id': 'track-directions',
-            'type': 'symbol',
-            'source': 'track-directions',
-            'layout': {
-                'icon-image': 'direction-arrow',
-                'icon-rotate': ['get', 'bearing'],
-                'icon-rotation-alignment': 'map',
-                'icon-allow-overlap': true,
-                'icon-ignore-placement': true
-            }
-        });
-
-        // Fit map to track bounds
-        this.locationTracker.pause();  // Pause before fitting bounds
-
-        const bounds = new mapboxgl.LngLatBounds();
-        coordinates.forEach(coord => bounds.extend(coord));
-        
-        map.fitBounds(bounds, { padding: 50 });
-
-        // Resume location tracking after delay
-        setTimeout(() => {
-            this.locationTracker.resume();
-        }, this.locationTrackerResumeDelay);
+    clearTrack() {
+        this.trackPoints = [];
+        this.map.clearTrackVisualization();
     },
 
     /**
      * Updates UI elements after track processing
      */
     updateUI() {
-        const uiControls = this.app.uiControls();
-        const progressTracker = this.progressTracker;
-        uiControls.showClearButton();
-        progressTracker.showProgressDisplay();
-    },
-
-    /**
-     * Clears the current track from the map
-     */
-    clearTrack() {
-        const map = this.mapInstance;
-        
-        // Remove layers and sources
-        ['track', 'track-directions'].forEach(id => {
-            if (map.getLayer(id)) {
-                map.removeLayer(id);
-            }
-            if (map.getSource(id)) {
-                map.removeSource(id);
-            }
-        });
-
-        // Remove direction arrow image
-        if (map.hasImage('direction-arrow')) {
-            map.removeImage('direction-arrow');
+        const totalDistance = this.getTotalDistance();
+        const distanceElement = document.getElementById('total-distance');
+        if (distanceElement) {
+            distanceElement.textContent = `Total Distance: ${(totalDistance / 1000).toFixed(2)} km`;
         }
-
-        // Reset track data
-        this.trackPoints = [];
-        this.trackLine = null;
-        this.trackIsLoaded = false;
-
-        // Update UI
-        const uiControls = this.app.uiControls();
-        const progressTracker = this.progressTracker;
-        uiControls.hideClearButton();
-        progressTracker.hideProgressDisplay();
-    },
-
-    /**
-     * Creates an arrow image for direction indicators
-     * @returns {ImageData} Arrow image data
-     */
-    createArrowImage() {
-        const cfg = this.arrowConfig;
-        const canvas = document.createElement('canvas');
-        canvas.width = cfg.width;
-        canvas.height = cfg.height;
-        const ctx = canvas.getContext('2d');
-
-        // Clear background
-        ctx.clearRect(0, 0, cfg.width, cfg.height);
-
-        // Draw the ^ character
-        ctx.fillStyle = cfg.color;
-        ctx.font = `${Math.floor(cfg.width * 0.8)}px Arial`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('^', cfg.width/2, cfg.height/2);
-
-        return ctx.getImageData(0, 0, cfg.width, cfg.height);
     },
 
     /**
@@ -255,68 +134,50 @@ const trackManager = {
      * @returns {Array} Interpolated track coordinates
      */
     interpolateTrackPoints(coordinates) {
-        const interpolatedPoints = [];
-        
+        const result = [];
         for (let i = 0; i < coordinates.length - 1; i++) {
-            const point1 = GeoPoint.fromArray(coordinates[i]);
-            const point2 = GeoPoint.fromArray(coordinates[i + 1]);
+            const start = coordinates[i];
+            const end = coordinates[i + 1];
             
-            interpolatedPoints.push(coordinates[i]);
+            result.push(start);
             
-            const segmentDistance = point1.distanceTo(point2);
+            const startPoint = new GeoPoint(start[0], start[1]);
+            const endPoint = new GeoPoint(end[0], end[1]);
+            const distance = startPoint.distanceTo(endPoint);
             
-            if (segmentDistance > this.interpolationDistance) {
-                // Calculate how many points we need to add
-                const numPoints = Math.floor(segmentDistance / this.interpolationDistance);
-                
+            if (distance > this.interpolationDistance) {
+                const numPoints = Math.floor(distance / this.interpolationDistance);
                 for (let j = 1; j < numPoints; j++) {
                     const fraction = j / numPoints;
-                    const lat = point1.lat + (point2.lat - point1.lat) * fraction;
-                    const lng = point1.lng + (point2.lng - point1.lng) * fraction;
-                    interpolatedPoints.push([lng, lat]);
+                    const lat = start[1] + (end[1] - start[1]) * fraction;
+                    const lng = start[0] + (end[0] - start[0]) * fraction;
+                    result.push([lng, lat]);
                 }
             }
         }
-        
-        // Don't forget to add the last point
-        interpolatedPoints.push(coordinates[coordinates.length - 1]);
-        
-        return interpolatedPoints;
+        result.push(coordinates[coordinates.length - 1]);
+        return result;
     },
 
     /**
      * Calculates cumulative distances for the track
      */
     calculateTrackDistances() {
+        if (this.trackPoints.length === 0) return;
+
         let cumulativeDistance = 0;
-        const totalDistance = this.calculateTotalDistance();
-
-        // Calculate distances from start and remaining distances
-        for (let i = 0; i < this.trackPoints.length; i++) {
-            if (i > 0) {
-                const point1 = this.trackPoints[i-1];
-                const point2 = this.trackPoints[i];
-                const distance = point1.distanceTo(point2);
-                cumulativeDistance += distance;
-            }
-            
-            this.trackPoints[i].distanceFromStart = cumulativeDistance;
-            this.trackPoints[i].remainingDistance = totalDistance - cumulativeDistance;
-        }
-    },
-
-    /**
-     * Calculates the total distance of the track
-     * @returns {number} Total distance in meters
-     */
-    calculateTotalDistance() {
-        let totalDistance = 0;
+        this.trackPoints[0].distanceFromStart = 0;
+        
         for (let i = 1; i < this.trackPoints.length; i++) {
-            const point1 = this.trackPoints[i-1];
-            const point2 = this.trackPoints[i];
-            totalDistance += point1.distanceTo(point2);
+            const distance = this.trackPoints[i].distanceTo(this.trackPoints[i - 1]);
+            cumulativeDistance += distance;
+            this.trackPoints[i].distanceFromStart = cumulativeDistance;
         }
-        return totalDistance;
+
+        const totalDistance = cumulativeDistance;
+        for (let i = 0; i < this.trackPoints.length; i++) {
+            this.trackPoints[i].remainingDistance = totalDistance - this.trackPoints[i].distanceFromStart;
+        }
     },
 
     /**
@@ -324,9 +185,7 @@ const trackManager = {
      * @returns {number} Total track distance in meters, or 0 if no track is loaded
      */
     getTotalDistance() {
-        if (!this.hasTrack()) {
-            return 0;
-        }
+        if (this.trackPoints.length === 0) return 0;
         return this.trackPoints[this.trackPoints.length - 1].distanceFromStart;
     },
 
@@ -336,9 +195,7 @@ const trackManager = {
      * @returns {number} Distance covered in meters up to this point, or 0 if index is invalid
      */
     getDistanceCovered(pointIndex) {
-        if (!this.hasTrack() || pointIndex < 0 || pointIndex >= this.trackPoints.length) {
-            return 0;
-        }
+        if (pointIndex < 0 || pointIndex >= this.trackPoints.length) return 0;
         return this.trackPoints[pointIndex].distanceFromStart;
     },
 
@@ -348,9 +205,7 @@ const trackManager = {
      * @returns {number} Remaining distance in meters from this point to the end, or 0 if index is invalid
      */
     getRemainingDistance(pointIndex) {
-        if (!this.hasTrack() || pointIndex < 0 || pointIndex >= this.trackPoints.length) {
-            return 0;
-        }
+        if (pointIndex < 0 || pointIndex >= this.trackPoints.length) return 0;
         return this.trackPoints[pointIndex].remainingDistance;
     },
 
@@ -359,7 +214,7 @@ const trackManager = {
      * @returns {boolean} True if a track is loaded, false otherwise
      */
     hasTrack() {
-        return this.trackIsLoaded;
+        return this.trackPoints.length > 0;
     },
 
     /**
@@ -368,21 +223,14 @@ const trackManager = {
      * @returns {Object|null} Object containing the closest point and its data, or null if no track is loaded
      */
     findClosestPoint(location) {
-        if (!this.hasTrack()) {
-            return null;
-        }
-
-        const closestIndex = this.findClosestPointIndex(location);
-        if (closestIndex === -1) {
-            return null;
-        }
+        const index = this.findClosestPointIndex(location);
+        if (index === -1) return null;
         
-        const point = this.trackPoints[closestIndex];
         return {
-            point: point,  // Return GeoPoint directly
-            index: closestIndex,
-            distanceFromStart: point.distanceFromStart,
-            remainingDistance: point.remainingDistance
+            point: this.trackPoints[index],
+            index: index,
+            distanceFromStart: this.getDistanceCovered(index),
+            remainingDistance: this.getRemainingDistance(index)
         };
     },
 
@@ -392,54 +240,20 @@ const trackManager = {
      * @returns {number} Index of the closest track point, or -1 if no track is loaded
      */
     findClosestPointIndex(location) {
-        if (!this.hasTrack()) {
-            return -1;
-        }
+        if (!this.hasTrack()) return -1;
 
+        let minDistance = Infinity;
         let closestIndex = -1;
-        let closestDistance = Infinity;
 
         this.trackPoints.forEach((point, index) => {
-            const distance = point.distanceTo(location);
-            if (distance < closestDistance) {
-                closestDistance = distance;
+            const distance = location.distanceTo(point);
+            if (distance < minDistance) {
+                minDistance = distance;
                 closestIndex = index;
             }
         });
 
         return closestIndex;
-    },
-
-    /**
-     * Creates direction points with bearings
-     * @param {Array} coordinates - Array of track coordinates
-     * @returns {Object} Direction points GeoJSON
-     */
-    createDirectionPoints(coordinates) {
-        const features = [];
-        const freq = this.arrowConfig.frequency;
-
-        for (let i = 0; i < coordinates.length - 1; i += freq) {
-            const point1 = { lat: coordinates[i][1], lng: coordinates[i][0] };
-            const point2 = { lat: coordinates[i + 1][1], lng: coordinates[i + 1][0] };
-            const bearing = this.geoUtils.calculateBearing(point1, point2);
-
-            features.push({
-                type: 'Feature',
-                geometry: {
-                    type: 'Point',
-                    coordinates: coordinates[i]
-                },
-                properties: {
-                    bearing: bearing
-                }
-            });
-        }
-
-        return {
-            type: 'FeatureCollection',
-            features: features
-        };
     }
 };
 
