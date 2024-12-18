@@ -26,7 +26,6 @@ const locationTracker = {
     updateTimer: null,
     isPaused: false,
     previousLocation: null,
-    mapNeedsUpdating: true,
 
     /**
      * Initialize with app reference
@@ -96,11 +95,8 @@ const locationTracker = {
         // Update current location
         this.currentLocation = geoPoint;
 
-        // Update map if needed
-        if (this.mapNeedsUpdating) {
-            this.mapNeedsUpdating = false;
-            this.updateMap();
-        }
+        this.updateMap();
+        
     },
 
     /**
@@ -138,21 +134,6 @@ const locationTracker = {
     },
 
     /**
-     * Clear any active location watch and timers
-     */
-    clearLocationWatch() {
-        if (this.watchId !== null) {
-            navigator.geolocation.clearWatch(this.watchId);
-            this.watchId = null;
-        }
-
-        if (this.updateTimer) {
-            clearInterval(this.updateTimer);
-            this.updateTimer = null;
-        }
-    },
-
-    /**
      * Get current location
      */
     getCurrentLocation() {
@@ -171,7 +152,7 @@ const locationTracker = {
      */
     resume() {
         this.isPaused = false;
-        this.mapNeedsUpdating = true;
+        this.updateMap();
     },
 
     /**
