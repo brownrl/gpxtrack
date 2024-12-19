@@ -319,11 +319,19 @@ const map = {
         if (this.mapInstance.getSource('location')) {
             this.mapInstance.getSource('location').setData(geoPoint.toGeoJSON());
 
-            
+            if (heading !== null) {
+                this.mapInstance.flyTo({
+                    center: geoPoint.toArray(),
+                    zoom: this.locationStyle.animation.defaultZoom,
+                    duration: this.locationStyle.animation.duration,
+                    essential: this.locationStyle.animation.essential
+                });
+                return;
+            }
             this.mapInstance.flyTo({
                 center: geoPoint.toArray(),
                 zoom: this.locationStyle.animation.defaultZoom,
-                bearing: heading !== null ? heading : this.mapInstance.getBearing(),
+                bearing: heading,
                 duration: this.locationStyle.animation.duration,
                 essential: this.locationStyle.animation.essential
             });
