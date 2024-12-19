@@ -94,9 +94,6 @@ const locationTracker = {
 
         // Update current location
         this.currentLocation = geoPoint;
-
-        this.updateMap();
-        
     },
 
     /**

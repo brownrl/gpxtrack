@@ -323,15 +323,16 @@ const map = {
                 this.mapInstance.flyTo({
                     center: geoPoint.toArray(),
                     zoom: this.locationStyle.animation.defaultZoom,
+                    bearing: heading,
                     duration: this.locationStyle.animation.duration,
                     essential: this.locationStyle.animation.essential
                 });
                 return;
             }
+
             this.mapInstance.flyTo({
                 center: geoPoint.toArray(),
                 zoom: this.locationStyle.animation.defaultZoom,
-                bearing: heading,
                 duration: this.locationStyle.animation.duration,
                 essential: this.locationStyle.animation.essential
             });
