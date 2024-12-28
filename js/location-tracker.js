@@ -15,6 +15,7 @@ const geoLocationOptions = {
 const locationTracker = {
     // Configuration
     updateInterval: 5000, // 5 seconds
+    minimumDistanceForHeadings: 4, // meters
 
     // Component references
     map: null,
@@ -104,13 +105,15 @@ const locationTracker = {
 
         if (this.isPaused) return;
 
-        // Calculate heading if we have a previous location
+        // Calculate heading if we have a previous location and we travelled enough
         let heading = null;
-        if (this.previousLocation) {
+        if (this.previousLocation && 
+            this.currentLocation.distanceTo(this.previousLocation) >= this.minimumDistanceForHeadings
+        ) {
             heading = this.calculateHeading(this.previousLocation, this.currentLocation);
         }
 
-        // Update map position with new location and heading
+        // Update map position with new location and heading (if available)
         this.map.updateLocationVisualization(this.currentLocation, heading);
 
         // Store current location as previous for next heading calculation

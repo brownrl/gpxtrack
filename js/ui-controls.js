@@ -92,14 +92,13 @@ const uiControls = {
             [this.buttonIds.openRestaurant, 'restaurant'],
             [this.buttonIds.openHospital, 'hospital']
         ].forEach(([id, search]) => {
-            document.getElementById(id).addEventListener('click', () => handleSearch(search));
+            document.getElementById(id).addEventListener('click', () => this.handleSearch(search));
         });
 
         this.gmapsButton.addEventListener('click', () => {
             this.drawerButtons.classList.toggle('expanded');
             // Don't auto-hide controls when drawer is open
-            clearTimeout(hideTimeout);
-            this.buttonsContainer.style.opacity = '1';
+            clearTimeout(this.hideTimeout);
         });
 
         // Close drawer when clicking outside
@@ -129,7 +128,7 @@ const uiControls = {
         });
 
         // Show UI controls when mouse moves
-        document.addEventListener('mousemove', resetHideTimeout);
+        document.addEventListener('mousemove', () => this.resetHideTimeout());
 
         // Initialize hide timeout
         resetHideTimeout();
