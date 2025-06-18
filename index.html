@@ -29,11 +29,11 @@
             document.createElement('meta').httpEquiv = 'Cache-Control';
             document.createElement('meta').content = 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0';
             document.head.appendChild(document.createElement('meta'));
-            
+
             document.createElement('meta').httpEquiv = 'Pragma';
             document.createElement('meta').content = 'no-cache';
             document.head.appendChild(document.createElement('meta'));
-            
+
             document.createElement('meta').httpEquiv = 'Expires';
             document.createElement('meta').content = '0';
             document.head.appendChild(document.createElement('meta'));
@@ -99,7 +99,7 @@
 
 <body>
     <div id="map"></div>
-    <div id="progress-display">progress</div>
+    <div id="progress-display">---</div>
     <div class="ui-controls-container">
         <div class="gmaps-drawer">
             <div class="drawer-buttons">
@@ -110,11 +110,12 @@
                 <button id="open-restaurant-btn" class="drawer-button">🍽️</button>
                 <button id="open-hospital-btn" class="drawer-button">❤️‍🩹</button>
             </div>
-            <button class="gmaps-button">🗺️</button>
+            <button class="gmaps-button">🌎</button>
         </div>
         <button class="file-picker-button">📁</button>
         <button class="clear-button" style="display: none;">❌</button>
         <input type="file" id="gpx-file" accept=".gpx" style="display: none;">
     </div>
 </body>
+
 </html>
