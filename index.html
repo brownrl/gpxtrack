@@ -112,9 +112,17 @@
             </div>
             <button class="gmaps-button">🌎</button>
         </div>
-        <button class="file-picker-button">📁</button>
+        <button id="file-picker-btn" class="file-picker-button">📁</button>
+        <button id="gpx-manager-btn" class="gpx-manager-button">🧭</button>
         <button class="clear-button" style="display: none;">❌</button>
         <input type="file" id="gpx-file" accept=".gpx" style="display: none;">
+    </div>
+    <div id="gpx-manager" class="gpx-manager" style="display: none;">
+        <h2>GPX Tracks</h2>
+        <ul id="gpx-list">
+            <!-- GPX files will be dynamically added here -->
+        </ul>
+        <button id="close-gpx-manager">Close</button>
     </div>
 </body>
 

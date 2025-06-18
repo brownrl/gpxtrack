@@ -19,6 +19,7 @@ import trackManager from './js/track-manager.js';
 import uiControls from './js/ui-controls.js';
 import progressTracker from './js/progress-tracker.js';
 import geoUtils from './js/geo-utils.js';
+import gpxManager from './js/gpx-manager.js';
 
 class App {
     constructor() {
@@ -29,7 +30,8 @@ class App {
             trackManager,
             uiControls,
             progressTracker,
-            geoUtils
+            geoUtils,
+            gpxManager
         };
 
         // Create a proxy to handle dynamic component access
@@ -77,7 +79,7 @@ class App {
             console.error('Map instance not initialized');
             return;
         }
-        
+
         // Wait for map style to load before initializing other components
         mapInstance.on('style.load', () => {
             try {
@@ -88,6 +90,9 @@ class App {
                 // 3. Initialize track manager (needed by other components)
                 const trackManager = this.trackManager();
                 if (trackManager) trackManager.init(this);
+
+                const gpxManager = this.gpxManager();
+                if (gpxManager) gpxManager.init(this);
 
                 // 4. Initialize UI controls
                 const uiControls = this.uiControls();

@@ -1,0 +1,38 @@
+/* Track list styling */
+.track-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 8px;
+}
+
+.track-name {
+    flex: 1;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    padding-right: 10px;
+}
+
+.track-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.track-btn {
+    min-width: 60px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    background-color: #f5f5f5;
+    cursor: pointer;
+}
+
+.load-track-btn:hover {
+    background-color: #e8f5e9;
+}
+
+.delete-track-btn:hover {
+    background-color: #ffebee;
+}
