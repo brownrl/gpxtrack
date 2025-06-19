@@ -14,9 +14,7 @@ const uiControls = {
         openRestaurant: 'open-restaurant-btn',
         openHospital: 'open-hospital-btn',
         clear: 'clear-button',
-        filePicker: 'file-picker-btn',
-        gpxManager: 'gpx-manager-btn',
-        closeGpxManager: 'close-gpx-manager',
+        filePicker: 'file-picker-btn'
     },
 
     // Element selectors and references
@@ -30,19 +28,14 @@ const uiControls = {
         openHospitalBtn: '#open-hospital-btn',
         gpxFileInput: '#gpx-file',
         filePickerBtn: '#file-picker-btn',
-        gpxManagerBtn: '#gpx-manager-btn',
-        closeGpxManagerBtn: '#close-gpx-manager',
-        gpxManagerModal: '#gpx-manager',
-        gpxList: '#gpx-list',
+
 
         // By class
         buttonsContainer: '.ui-controls-container',
         drawerButtons: '.drawer-buttons',
         gmapsButton: '.gmaps-button',
-        gpxManagerButton: '.gpx-manager-button',
         clearButton: '.clear-button',
-        gpxManager: '.gpx-manager',
-        gmapsDrawer: '.gmaps-drawer',
+        gmapsDrawer: '.gmaps-drawer'
     },
 
     // DOM element references
@@ -51,7 +44,6 @@ const uiControls = {
     // Component references
     trackManager: null,
     locationTracker: null,
-    gpxManager: null,
 
     // Runtime variables
     hideTimeout: null,
@@ -60,12 +52,14 @@ const uiControls = {
      * Initialize with app reference and setup UI controls
      * @param {Object} app - The app mediator
      */
-    init(app) {
+    async init(app) {
         this.trackManager = app.trackManager();
         this.locationTracker = app.locationTracker();
-        this.gpxManager = app.gpxManager();
         this.initElementReferences();
         this.initUIControls();
+
+        // Initialize track selection UI - MAKE THIS ASYNC
+        await this.initTrackSelector();
     },
 
     /**
@@ -116,50 +110,9 @@ const uiControls = {
             this.elements.clearButton.style.display = 'none';
         };
 
-        this.showGpxManager = function () {
-            const tracks = this.gpxManager.getAllTracks();
 
-            // Clear the list first
-            this.elements.gpxList.innerHTML = '';
 
-            if (tracks && tracks.length > 0) {
-                this.elements.gpxList.innerHTML = tracks.map(track => `
-                    <li>
-                        <div class="track-item">
-                            <span class="track-name">${track.name || 'Track'}</span>
-                            <div class="track-buttons">
-                                <button class="track-btn load-track-btn" data-track-id="${track.id}">Load</button>
-                                <button class="track-btn delete-track-btn" data-track-id="${track.id}">Delete</button>
-                            </div>
-                        </div>
-                    </li>
-                `).join('');
 
-                // Add event listeners for load and delete buttons
-                this.elements.gpxList.querySelectorAll('.load-track-btn').forEach(btn => {
-                    btn.addEventListener('click', (event) => {
-                        const trackId = event.target.getAttribute('data-track-id');
-                        this.gpxManager.loadTrack(trackId);
-                        this.hideGpxManager();
-                        resetHideTimeout();
-                    });
-                });
-
-                this.elements.gpxList.querySelectorAll('.delete-track-btn').forEach(btn => {
-                    btn.addEventListener('click', (event) => {
-                        const trackId = event.target.getAttribute('data-track-id');
-                        this.gpxManager.removeTrack(trackId);
-                        this.showGpxManager(); // Refresh the list
-                        resetHideTimeout();
-                    });
-                });
-            }
-            this.elements.gpxManagerModal.style.display = 'flex';
-        };
-
-        this.hideGpxManager = function () {
-            this.elements.gpxManagerModal.style.display = 'none';
-        };
 
         // Handle maps button click
         this.elements.openMapsBtn.addEventListener('click', () => {
@@ -213,17 +166,6 @@ const uiControls = {
         this.elements.clearButton.addEventListener('click', () => {
             this.clearTrack();
             resetHideTimeout();
-        });
-
-        // GPX Manager button click handler
-        this.elements.gpxManagerBtn.addEventListener('click', () => {
-            this.showGpxManager();
-            resetHideTimeout();
-        });
-
-        // Close GPX Manager button click handler
-        this.elements.closeGpxManagerBtn.addEventListener('click', () => {
-            this.hideGpxManager();
         });
 
         // Show UI controls when mouse moves

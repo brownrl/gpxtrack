@@ -2,7 +2,6 @@ const CACHE_NAME = 'gpx-track-v4';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
-    '/thewalk.gpx',
     '/manifest.json',
     '/styles.css',
     // JavaScript files
@@ -13,7 +12,6 @@ const ASSETS_TO_CACHE = [
     '/js/ui-controls.js',
     '/js/geo-utils.js',
     '/js/geo-point.js',
-    '/js/gpx-manager.js',
     // Icons
     '/icons/icon-192x192.png',
     '/icons/icon-512x512.png',
@@ -23,6 +21,9 @@ const ASSETS_TO_CACHE = [
     'https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.js',
     'https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css'
 ];
+
+
+
 
 // Install event - cache assets
 self.addEventListener('install', (event) => {

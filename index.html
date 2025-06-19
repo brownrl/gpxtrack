@@ -61,7 +61,7 @@
     <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512x512.png">
 
     <!-- PWA Manifest -->
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="/manifest.json">
 
     <!-- Include Mapbox GL JS CSS and JS -->
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
@@ -95,6 +95,8 @@
             });
         }
     </script>
+
+    <meta name="supported-file-types" content=".gpx,application/gpx+xml">
 </head>
 
 <body>
@@ -113,16 +115,8 @@
             <button class="gmaps-button">🌎</button>
         </div>
         <button id="file-picker-btn" class="file-picker-button">📁</button>
-        <button id="gpx-manager-btn" class="gpx-manager-button">🧭</button>
         <button class="clear-button" style="display: none;">❌</button>
         <input type="file" id="gpx-file" accept=".gpx" style="display: none;">
-    </div>
-    <div id="gpx-manager" class="gpx-manager" style="display: none;">
-        <h2>GPX Tracks</h2>
-        <ul id="gpx-list">
-            <!-- GPX files will be dynamically added here -->
-        </ul>
-        <button id="close-gpx-manager">Close</button>
     </div>
 </body>
 
