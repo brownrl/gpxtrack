@@ -67,11 +67,26 @@ self.addEventListener('fetch', (event) => {
                                 });
                         }
                         return response;
+                    })
+                    .catch(async () => {
+                        // Fallback: try to fetch from GitHub raw if same-origin
+                        try {
+                            const url = new URL(event.request.url);
+                            if (url.origin === self.location.origin) {
+                                // Remove leading slash for GitHub raw path
+                                const githubPath = url.pathname.replace(/^\//, '');
+                                const githubRawUrl = `https://raw.githubusercontent.com/brownrl/gpxtrack/main/${githubPath}`;
+                                const githubResponse = await fetch(githubRawUrl);
+                                if (githubResponse.ok) {
+                                    return githubResponse;
+                                }
+                            }
+                        } catch (e) {
+                            // Ignore errors, fall through to offline response
+                        }
+                        // Offline fallback
+                        return new Response('Offline - Cannot fetch resource');
                     });
-            })
-            .catch(() => {
-                // Offline fallback
-                return new Response('Offline - Cannot fetch resource');
             })
     );
 });
