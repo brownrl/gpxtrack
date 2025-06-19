@@ -8,6 +8,10 @@ A simple PWA to be installed on your phone. Helping you to follow a GPX track an
 2. Host it some where and browse to it with your phone. (herd share?)
 3. Save it to your home screen.
 
+### OR...
+
+Browse to https://brownrl.github.io/gpxtrack/ and save it to your home screen. It's a PWA so it will save as an 'app' on your phone.
+
 ## Usage
 
 1. Export a GPX file from your favorite app to you files.
