@@ -16,9 +16,11 @@ Browse to https://brownrl.github.io/gpxtrack/ and save it to your home screen. I
 
 1. Export a GPX file from your favorite app to you files.
 2. Open the GPX app on your phone.
-3. Tap the Folder icon in the bottom right corner.
+3. Tap the Folder icon in the bottom left corner.
 4. Select the GPX file you exported.
 5. Start moving, I personally prefer to use a bicycle, but it works with walking too.
+
+The globe button will open a drawer with quick links to Google Maps with certains types of locations already searched for you. (Lodging, Restaurants, etc.)
 
 ### Demo Screenshot
 ![Demo Screenshot](https://raw.githubusercontent.com/brownrl/gpxtrack/master/demo.png)
