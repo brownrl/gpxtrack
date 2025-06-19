@@ -23,7 +23,7 @@ Browse to https://brownrl.github.io/gpxtrack/ and save it to your home screen. I
 The globe button will open a drawer with quick links to Google Maps with certains types of locations already searched for you. (Lodging, Restaurants, etc.)
 
 ### Demo Screenshot
-![Demo Screenshot](https://raw.githubusercontent.com/brownrl/gpxtrack/master/demo.png)
+![Demo Screenshot](https://brownrl.github.io/gpxtrack/demo.png)
 
 ## Features
 
