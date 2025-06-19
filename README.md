@@ -16,7 +16,7 @@ Browse to https://brownrl.github.io/gpxtrack/ and save it to your home screen. I
 
 1. Export a GPX file from your favorite app to you files.
 2. Open the GPX app on your phone.
-3. Tap the Folder icon in the bottom left corner.
+3. Tap the Rocket icon in the bottom left corner.
 4. Select the GPX file you exported.
 5. Start moving, I personally prefer to use a bicycle, but it works with walking too.
 
