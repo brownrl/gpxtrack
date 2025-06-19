@@ -10,7 +10,7 @@ const trackManager = {
     interpolationDistance: 50, // meters
     locationTrackerResumeDelay: 5000, // milliseconds
     maxSearchDistance: 1000,  // maximum distance to search for closest point
-    
+
     // Component references
     map: null,
     locationTracker: null,
@@ -84,7 +84,7 @@ const trackManager = {
     async processGPXTrack(gpxContent) {
         const parser = new DOMParser();
         const gpx = parser.parseFromString(gpxContent, 'text/xml');
-        
+
         // Extract track points as GeoPoints
         const trackPoints = Array.from(gpx.getElementsByTagName('trkpt')).map(point => {
             // GPX uses lat/lon attributes
@@ -102,13 +102,13 @@ const trackManager = {
 
         // Clear map visualization first but don't update UI yet
         this.map.clearTrackVisualization();
-        
+
         // Interpolate points to ensure even spacing
         this.trackPoints = this.interpolateTrackPoints(trackPoints);
-        
+
         // Calculate distances for progress tracking
         this.calculateTrackDistances();
-        
+
         // Update map with track visualization (Mapbox expects [lng, lat])
         this.map.updateTrackVisualization({
             coordinates: this.trackPoints.map(point => point.toArray())
@@ -124,16 +124,16 @@ const trackManager = {
     clearTrack() {
         // Clear data
         this.trackPoints = [];
-        
+
         // Clear visualization
         this.map.clearTrackVisualization();
-        
+
         // Clear file input
         const fileInput = document.getElementById('gpx-file');
         if (fileInput) {
             fileInput.value = '';
         }
-        
+
         // Update state and UI
         this.hasTrack = false;
         this.updateUI();
@@ -146,9 +146,11 @@ const trackManager = {
         if (this.hasTrack) {
             this.progressTracker.showProgressDisplay();
             this.uiControls.showClearButton();
+            this.uiControls.showZoomButtons();
         } else {
             this.progressTracker.hideProgressDisplay();
             this.uiControls.hideClearButton();
+            this.uiControls.hideZoomButtons();
         }
     },
 
@@ -192,10 +194,10 @@ const trackManager = {
      */
     calculateTrackDistances() {
         let cumulativeDistance = 0;
-        
+
         for (let i = 0; i < this.trackPoints.length; i++) {
             const point = this.trackPoints[i];
-            
+
             if (i > 0) {
                 const prevPoint = this.trackPoints[i - 1];
                 const distance = this.geoUtils.calculateDistance(
@@ -204,16 +206,16 @@ const trackManager = {
                 );
                 cumulativeDistance += distance;
             }
-            
+
             point.distanceFromStart = cumulativeDistance;
             point.remainingDistance = 0; // Will be calculated in reverse
         }
-        
+
         // Calculate remaining distances in reverse
         let remainingDistance = 0;
         for (let i = this.trackPoints.length - 1; i >= 0; i--) {
             this.trackPoints[i].remainingDistance = remainingDistance;
-            
+
             if (i > 0) {
                 const distance = this.geoUtils.calculateDistance(
                     this.trackPoints[i - 1].toLatLng(),
@@ -260,10 +262,10 @@ const trackManager = {
      */
     findClosestPoint(location) {
         if (!this.hasTrack) return null;
-        
+
         const index = this.findClosestPointIndex(location);
         if (index === -1) return null;
-        
+
         return {
             point: this.trackPoints[index],
             index: index,
@@ -279,23 +281,23 @@ const trackManager = {
      */
     findClosestPointIndex(location) {
         if (!this.hasTrack || this.trackPoints.length === 0) return -1;
-        
+
         let minDistance = Infinity;
         let closestIndex = -1;
-        
+
         for (let i = 0; i < this.trackPoints.length; i++) {
             const point = this.trackPoints[i];
             const distance = this.geoUtils.calculateDistance(
                 location.toLatLng(),
                 point.toLatLng()
             );
-            
+
             if (distance < minDistance) {
                 minDistance = distance;
                 closestIndex = i;
             }
         }
-        
+
         return closestIndex;
     }
 };

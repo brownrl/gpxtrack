@@ -34,7 +34,7 @@ const map = {
             essential: true
         }
     },
-    
+
     // Component references
     app: null,
     mapInstance: null,
@@ -42,6 +42,8 @@ const map = {
 
     // Runtime variables
     trackLine: null,
+
+    zoomOffset: 0, // Default zoom level
 
 
     /**
@@ -108,6 +110,21 @@ const map = {
         }
     },
 
+    zoomIn() {
+        this.zoomOffset += 1;
+        this.locationTracker.updateMap();
+    },
+
+    zoomOut() {
+        this.zoomOffset -= 1;
+        this.locationTracker.updateMap();
+    },
+
+    resetZoom() {
+        this.zoomOffset = 0;
+        this.locationTracker.updateMap();
+    },
+
     /**
      * Add a source to the map
      * @param {string} id - Source ID
@@ -166,7 +183,7 @@ const map = {
      */
     updateTrackVisualization(trackData) {
         const { coordinates } = trackData;
-        
+
         // Create and add track line
         const trackLine = {
             'type': 'Feature',
@@ -194,7 +211,7 @@ const map = {
         // Add direction indicators
         const directionPoints = this.createDirectionPoints(coordinates);
         this.mapInstance.addImage('direction-arrow', this.createArrowImage());
-        
+
         this.addSource('track-directions', {
             'type': 'geojson',
             'data': directionPoints
@@ -216,12 +233,12 @@ const map = {
         // Fit map to track bounds
         const bounds = new mapboxgl.LngLatBounds();
         coordinates.forEach(coord => bounds.extend(coord));
-        
+
         // Pause location tracker while showing full track
         this.locationTracker.pause();
-        
+
         this.fitBounds(bounds, { padding: 50 });
-        
+
         // Resume location tracker after 5 seconds
         setTimeout(() => {
             this.locationTracker.resume();
@@ -259,16 +276,16 @@ const map = {
         const canvas = document.createElement('canvas');
         canvas.width = width;
         canvas.height = height;
-        
+
         const ctx = canvas.getContext('2d');
         ctx.fillStyle = color;
         ctx.font = `${height}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        
+
         // Draw the ^ character
-        ctx.fillText('^', width/2, height/2);
-        
+        ctx.fillText('^', width / 2, height / 2);
+
         return ctx.getImageData(0, 0, width, height);
     },
 
@@ -280,14 +297,14 @@ const map = {
     createDirectionPoints(coordinates) {
         const { frequency } = this.trackStyle.arrowConfig;
         const features = [];
-        
+
         for (let i = 0; i < coordinates.length - 1; i += frequency) {
             const point1 = coordinates[i];
             const point2 = coordinates[i + 1];
             if (!point2) continue;
 
             const bearing = this.app.geoUtils().calculateBearing(point1, point2);
-            
+
             features.push({
                 'type': 'Feature',
                 'geometry': {
@@ -299,7 +316,7 @@ const map = {
                 }
             });
         }
-        
+
         return {
             'type': 'FeatureCollection',
             'features': features
@@ -313,7 +330,6 @@ const map = {
      * @param {Object} options - Animation options
      */
     updateLocationVisualization(geoPoint, heading) {
-        
 
         // Update the location source
         if (this.mapInstance.getSource('location')) {
@@ -322,7 +338,7 @@ const map = {
             if (heading !== null) {
                 this.mapInstance.flyTo({
                     center: geoPoint.toArray(),
-                    zoom: this.locationStyle.animation.defaultZoom,
+                    zoom: this.locationStyle.animation.defaultZoom + this.zoomOffset,
                     bearing: heading,
                     duration: this.locationStyle.animation.duration,
                     essential: this.locationStyle.animation.essential
@@ -332,11 +348,11 @@ const map = {
 
             this.mapInstance.flyTo({
                 center: geoPoint.toArray(),
-                zoom: this.locationStyle.animation.defaultZoom,
+                zoom: this.locationStyle.animation.defaultZoom + this.zoomOffset,
                 duration: this.locationStyle.animation.duration,
                 essential: this.locationStyle.animation.essential
             });
-            
+
         }
     },
 
@@ -345,7 +361,7 @@ const map = {
      * @param {Object} options - Visualization options
      */
     setupLocationVisualization() {
-        
+
 
         if (!this.mapInstance.getSource('location')) {
             this.mapInstance.addSource('location', {

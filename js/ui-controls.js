@@ -14,7 +14,9 @@ const uiControls = {
         openRestaurant: 'open-restaurant-btn',
         openHospital: 'open-hospital-btn',
         clear: 'clear-button',
-        filePicker: 'file-picker-btn'
+        filePicker: 'file-picker-btn',
+        zoomin: 'zoomin-button',
+        zoomout: 'zoomout-button',
     },
 
     // Element selectors and references
@@ -28,6 +30,8 @@ const uiControls = {
         openHospitalBtn: '#open-hospital-btn',
         gpxFileInput: '#gpx-file',
         filePickerBtn: '#file-picker-btn',
+        zoominButton: '#zoomin-button',
+        zoomoutButton: '#zoomout-button',
 
 
         // By class
@@ -44,6 +48,7 @@ const uiControls = {
     // Component references
     trackManager: null,
     locationTracker: null,
+    map: null,
 
     // Runtime variables
     hideTimeout: null,
@@ -55,11 +60,9 @@ const uiControls = {
     async init(app) {
         this.trackManager = app.trackManager();
         this.locationTracker = app.locationTracker();
+        this.map = app.map();
         this.initElementReferences();
         this.initUIControls();
-
-        // Initialize track selection UI - MAKE THIS ASYNC
-        await this.initTrackSelector();
     },
 
     /**
@@ -111,8 +114,16 @@ const uiControls = {
         };
 
 
+        this.showZoomButtons = function () {
+            this.elements.zoominButton.style.display = 'flex';
+            this.elements.zoomoutButton.style.display = 'flex';
+            resetHideTimeout();
+        };
 
-
+        this.hideZoomButtons = function () {
+            this.elements.zoominButton.style.display = 'none';
+            this.elements.zoomoutButton.style.display = 'none';
+        };
 
         // Handle maps button click
         this.elements.openMapsBtn.addEventListener('click', () => {
@@ -168,6 +179,14 @@ const uiControls = {
             resetHideTimeout();
         });
 
+        this.elements.zoominButton.addEventListener('click', () => {
+            this.map.zoomIn();
+        });
+
+        this.elements.zoomoutButton.addEventListener('click', () => {
+            this.map.zoomOut();
+        });
+
         // Show UI controls when mouse moves
         document.addEventListener('mousemove', () => this.resetHideTimeout());
 
@@ -207,6 +226,7 @@ const uiControls = {
      */
     clearTrack() {
         this.trackManager.clearTrack();
+        this.map.resetZoom();
     },
 };
 
