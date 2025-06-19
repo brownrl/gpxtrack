@@ -1,5 +1,7 @@
 #!/bin/bash
 
+### Script to generate a QR code for a given URL and open it in the default web browser
+
 # Check if a URL was provided
 if [ -z "$1" ]; then
     echo "Please provide a URL as an argument"
