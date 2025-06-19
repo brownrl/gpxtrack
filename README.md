@@ -16,6 +16,9 @@ A simple PWA to be installed on your phone. Helping you to follow a GPX track an
 4. Select the GPX file you exported.
 5. Start moving, I personally prefer to use a bicycle, but it works with walking too.
 
+### Demo Screenshot
+![Demo Screenshot](https://raw.githubusercontent.com/brownrl/gpxtrack/master/demo.png)
+
 ## Features
 
 - Minimalist design.
