@@ -7,7 +7,7 @@ const map = {
     // Configuration
     defaultConfig: {
         container: 'map',
-        style: 'mapbox://styles/brownrl/cm48cuxe6014o01si62vr078z',
+        style: 'mapbox://styles/brownrl/cmc3e2a2j00ho01sdamtf6oc8',
         center: [10, 50], // Center over Europe
         zoom: 4, // Zoom level to show Europe
         interactive: false // Disable interactions by default
