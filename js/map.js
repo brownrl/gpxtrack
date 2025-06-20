@@ -110,13 +110,11 @@ const map = {
         }
     },
 
-    zoomIn() {
+    zoom() {
         this.zoomOffset += 1;
-        this.locationTracker.updateMap();
-    },
-
-    zoomOut() {
-        this.zoomOffset -= 1;
+        if (this.zoomOffset > 2) {
+            this.zoomOffset = -2; // Limit zoom offset to 3
+        }
         this.locationTracker.updateMap();
     },
 

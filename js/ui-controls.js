@@ -6,18 +6,6 @@
 const uiControls = {
     // Configuration
     hideTimeoutMs: 3000, // Time in milliseconds before UI controls fade out
-    buttonIds: {
-        openMaps: 'open-maps-btn',
-        openLodging: 'open-lodging-btn',
-        openMarket: 'open-market-btn',
-        openCamping: 'open-camping-btn',
-        openRestaurant: 'open-restaurant-btn',
-        openHospital: 'open-hospital-btn',
-        clear: 'clear-button',
-        filePicker: 'file-picker-btn',
-        zoomin: 'zoomin-button',
-        zoomout: 'zoomout-button',
-    },
 
     // Element selectors and references
     selectors: {
@@ -30,15 +18,15 @@ const uiControls = {
         openHospitalBtn: '#open-hospital-btn',
         gpxFileInput: '#gpx-file',
         filePickerBtn: '#file-picker-btn',
-        zoominButton: '#zoomin-button',
-        zoomoutButton: '#zoomout-button',
+        zoomBtn: '#zoom-btn',
+        reloadBtn: '#reload-btn',
+        clearBtn: '#clear-btn',
+        gMapsBtn: '#gmaps-btn',
 
 
         // By class
         buttonsContainer: '.ui-controls-container',
         drawerButtons: '.drawer-buttons',
-        gmapsButton: '.gmaps-button',
-        clearButton: '.clear-button',
         gmapsDrawer: '.gmaps-drawer'
     },
 
@@ -102,7 +90,7 @@ const uiControls = {
          * Shows the clear button and resets hide timeout
          */
         this.showClearButton = function () {
-            this.elements.clearButton.style.display = 'flex';
+            this.elements.clearBtn.style.display = 'flex';
             resetHideTimeout();
         };
 
@@ -110,19 +98,26 @@ const uiControls = {
          * Hides the clear button
          */
         this.hideClearButton = function () {
-            this.elements.clearButton.style.display = 'none';
+            this.elements.clearBtn.style.display = 'none';
         };
 
 
-        this.showZoomButtons = function () {
-            this.elements.zoominButton.style.display = 'flex';
-            this.elements.zoomoutButton.style.display = 'flex';
+        this.showZoomButton = function () {
+            this.elements.zoomBtn.style.display = 'flex';
             resetHideTimeout();
         };
 
-        this.hideZoomButtons = function () {
-            this.elements.zoominButton.style.display = 'none';
-            this.elements.zoomoutButton.style.display = 'none';
+        this.hideZoomButton = function () {
+            this.elements.zoomBtn.style.display = 'none';
+        };
+
+        this.showReloadButton = function () {
+            this.elements.reloadBtn.style.display = 'flex';
+            resetHideTimeout();
+        };
+
+        this.hideReloadButton = function () {
+            this.elements.reloadBtn.style.display = 'none';
         };
 
         // Handle maps button click
@@ -147,7 +142,7 @@ const uiControls = {
             element.addEventListener('click', () => this.handleSearch(search));
         });
 
-        this.elements.gmapsButton.addEventListener('click', () => {
+        this.elements.gMapsBtn.addEventListener('click', () => {
             this.elements.drawerButtons.classList.toggle('expanded');
             // Don't auto-hide controls when drawer is open
             clearTimeout(this.hideTimeout);
@@ -174,21 +169,31 @@ const uiControls = {
         });
 
         // Clear button click handler
-        this.elements.clearButton.addEventListener('click', () => {
+        this.elements.clearBtn.addEventListener('click', () => {
             this.clearTrack();
             resetHideTimeout();
         });
 
-        this.elements.zoominButton.addEventListener('click', () => {
-            this.map.zoomIn();
+        this.elements.zoomBtn.addEventListener('click', () => {
+            this.map.zoom();
+            resetHideTimeout();
         });
 
-        this.elements.zoomoutButton.addEventListener('click', () => {
-            this.map.zoomOut();
+        this.elements.reloadBtn.addEventListener('click', () => {
+            const lastGpxContent = localStorage.getItem('lastGpxContent');
+            if (lastGpxContent) {
+                this.trackManager.processGPXTrack(lastGpxContent);
+            }
         });
 
         // Show UI controls when mouse moves
         document.addEventListener('mousemove', () => this.resetHideTimeout());
+
+        const lastGpxContent = localStorage.getItem('lastGpxContent') || false;
+        if (lastGpxContent) {
+            // If there's a last GPX content, show the reload button
+            this.showReloadButton();
+        }
 
         // Initialize hide timeout
         resetHideTimeout();

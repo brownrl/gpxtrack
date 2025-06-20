@@ -100,6 +100,8 @@ const trackManager = {
             return;
         }
 
+        localStorage.setItem('lastGpxContent', gpxContent);
+
         // Clear map visualization first but don't update UI yet
         this.map.clearTrackVisualization();
 
@@ -146,11 +148,15 @@ const trackManager = {
         if (this.hasTrack) {
             this.progressTracker.showProgressDisplay();
             this.uiControls.showClearButton();
-            this.uiControls.showZoomButtons();
+            this.uiControls.showZoomButton();
+            this.uiControls.hideReloadButton();
         } else {
             this.progressTracker.hideProgressDisplay();
             this.uiControls.hideClearButton();
-            this.uiControls.hideZoomButtons();
+            this.uiControls.hideZoomButton();
+            if (localStorage.getItem('lastGpxContent')) {
+                this.uiControls.showReloadButton();
+            }
         }
     },
 
