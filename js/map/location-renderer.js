@@ -42,21 +42,24 @@ class LocationRenderer {
      */
     handleLocationUpdated(data) {
         const { location } = data; // Ignore device heading, we'll calculate our own
-        
+
         // Calculate heading from GPS movement
         const calculatedHeading = this.calculateHeadingFromMovement(this.previousLocation, location);
-        
+
         // Update heading if we calculated a new one
         if (calculatedHeading !== null) {
             this.currentHeading = calculatedHeading;
+            console.log('LocationRenderer: Calculated heading from GPS movement:', this.currentHeading);
+        } else if (this.previousLocation) {
+            console.log('LocationRenderer: No heading calculated (insufficient movement), using last heading:', this.currentHeading);
         }
-        
+
         // Update visualization and fly to location
         this.updateLocationVisualizationAndFlyTo(location, this.currentHeading);
-        
+
         // Store current location as previous for next calculation
         this.previousLocation = location;
-        
+
         // Mark that we've received first location for other logic
         if (!this.hasReceivedFirstLocation && location) {
             this.hasReceivedFirstLocation = true;
@@ -199,6 +202,8 @@ class LocationRenderer {
 
         this.isLocationVisible = false;
         this.hasReceivedFirstLocation = false; // Reset first location flag
+        this.previousLocation = null; // Reset previous location for heading calculation
+        this.currentHeading = null; // Reset heading
 
         this.eventBus.emit('location:visualization-cleared');
     }
@@ -237,7 +242,7 @@ class LocationRenderer {
         const y = Math.sin(lon2 - lon1) * Math.cos(lat2);
         const x = Math.cos(lat1) * Math.sin(lat2) -
             Math.sin(lat1) * Math.cos(lat2) * Math.cos(lon2 - lon1);
-        
+
         let bearing = Math.atan2(y, x) * 180 / Math.PI;
         bearing = (bearing + 360) % 360; // Normalize to 0-360
 
