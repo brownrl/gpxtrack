@@ -42,6 +42,18 @@ class LocationRenderer {
     handleLocationUpdated(data) {
         const { location } = data;
 
+        // Defensive check for location object
+        if (!location) {
+            console.warn('LocationRenderer: Received empty location data');
+            return;
+        }
+
+        // Defensive check for distanceTo method
+        if (!location.distanceTo || typeof location.distanceTo !== 'function') {
+            console.warn('LocationRenderer: Location object missing distanceTo method:', location);
+            return;
+        }
+
         // Calculate heading if we have a previous location and we travelled enough
         let heading = null;
         if (this.previousLocation &&

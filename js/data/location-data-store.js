@@ -3,6 +3,10 @@
  * Centralized location data management with event-driven updates
  */
 
+import GeoPoint from './geo-point.js';
+import geoUtils from './geo-utils.js';
+import config from '../core/config.js';
+
 class LocationDataStore {
     constructor(eventBus) {
         this.eventBus = eventBus;
@@ -39,9 +43,6 @@ class LocationDataStore {
     async handleRawLocationUpdate(data) {
         const { position } = data;
 
-        // Import GeoPoint dynamically to avoid circular dependencies
-        const { default: GeoPoint } = await import('../data/geo-point.js');
-
         // Create GeoPoint from position
         const geoPoint = GeoPoint.fromPosition(position);
 
@@ -69,7 +70,7 @@ class LocationDataStore {
      * Update current location
      * @param {GeoPoint} geoPoint - New location
      */
-    async updateLocation(geoPoint) {
+    updateLocation(geoPoint) {
         if (!this.isTracking) return;
 
         // Store previous location
@@ -83,11 +84,9 @@ class LocationDataStore {
         // Calculate heading if we have previous location and sufficient movement
         if (this.previousLocation) {
             const distance = this.currentLocation.distanceTo(this.previousLocation);
-            const minimumDistance = (await import('../core/config.js')).default.location.tracking.minimumDistanceForHeadings;
+            const minimumDistance = config.location.tracking.minimumDistanceForHeadings;
 
             if (distance >= minimumDistance) {
-                // Import geoUtils dynamically to avoid circular dependencies
-                const { default: geoUtils } = await import('../data/geo-utils.js');
                 this.heading = geoUtils.calculateBearing(
                     this.previousLocation.toLatLng(),
                     this.currentLocation.toLatLng()
