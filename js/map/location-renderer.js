@@ -12,7 +12,8 @@ class LocationRenderer {
         this.isLocationVisible = false;
         this.hasReceivedFirstLocation = false; // Track if we've received first location
         this.currentZoomOffset = 0; // Track current zoom offset
-        this.lastValidHeading = null; // Keep track of last valid heading
+        this.previousLocation = null; // Store previous location for heading calculation
+        this.currentHeading = null; // Current calculated heading
 
         this.setupEventListeners();
     }
@@ -35,16 +36,27 @@ class LocationRenderer {
     handleMapStyleLoaded(data) {
         this.mapInstance = data.mapInstance;
         this.setupLocationVisualization();
-    }
-
-    /**
+    }    /**
      * Handle location updated
      * @param {Object} data - Location data
      */
     handleLocationUpdated(data) {
-        const { location, heading } = data;
-        this.updateLocationVisualizationAndFlyTo(location, heading);
-
+        const { location } = data; // Ignore device heading, we'll calculate our own
+        
+        // Calculate heading from GPS movement
+        const calculatedHeading = this.calculateHeadingFromMovement(this.previousLocation, location);
+        
+        // Update heading if we calculated a new one
+        if (calculatedHeading !== null) {
+            this.currentHeading = calculatedHeading;
+        }
+        
+        // Update visualization and fly to location
+        this.updateLocationVisualizationAndFlyTo(location, this.currentHeading);
+        
+        // Store current location as previous for next calculation
+        this.previousLocation = location;
+        
         // Mark that we've received first location for other logic
         if (!this.hasReceivedFirstLocation && location) {
             this.hasReceivedFirstLocation = true;
@@ -197,6 +209,39 @@ class LocationRenderer {
      */
     isVisible() {
         return this.isLocationVisible;
+    }
+
+    /**
+     * Calculate heading from GPS movement (previous location to current location)
+     * @param {GeoPoint} previousLoc - Previous location
+     * @param {GeoPoint} currentLoc - Current location
+     * @returns {number|null} Heading in degrees (0-360) or null if can't calculate
+     */
+    calculateHeadingFromMovement(previousLoc, currentLoc) {
+        if (!previousLoc || !currentLoc) return null;
+
+        // Calculate distance to ensure we have significant movement
+        const distance = currentLoc.distanceTo(previousLoc);
+        const minimumDistance = 4; // meters - same as config.location.tracking.minimumDistanceForHeadings
+
+        if (distance < minimumDistance) {
+            return null; // Not enough movement for reliable heading
+        }
+
+        // Calculate bearing from previous to current location
+        const lon1 = previousLoc.lng * Math.PI / 180;
+        const lat1 = previousLoc.lat * Math.PI / 180;
+        const lon2 = currentLoc.lng * Math.PI / 180;
+        const lat2 = currentLoc.lat * Math.PI / 180;
+
+        const y = Math.sin(lon2 - lon1) * Math.cos(lat2);
+        const x = Math.cos(lat1) * Math.sin(lat2) -
+            Math.sin(lat1) * Math.cos(lat2) * Math.cos(lon2 - lon1);
+        
+        let bearing = Math.atan2(y, x) * 180 / Math.PI;
+        bearing = (bearing + 360) % 360; // Normalize to 0-360
+
+        return bearing;
     }
 }
 
