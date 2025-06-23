@@ -41,26 +41,11 @@ class LocationRenderer {
      */
     handleLocationUpdated(data) {
         const { location, heading } = data;
-        this.updateLocationVisualization(location, heading);
+        this.updateLocationVisualizationAndFlyTo(location, heading);
 
-        // Always fly to follow the user's location (not just the first time)
-        if (location) {
-            const flyToOptions = {
-                center: [location.lng, location.lat],
-                zoom: config.map.defaultZoom
-            };
-
-            // Add bearing (heading) if available
-            if (heading !== null && heading !== undefined) {
-                flyToOptions.bearing = heading;
-            }
-
-            this.eventBus.emit('map:fly-to-requested', flyToOptions);
-
-            // Mark that we've received first location for other logic
-            if (!this.hasReceivedFirstLocation) {
-                this.hasReceivedFirstLocation = true;
-            }
+        // Mark that we've received first location for other logic
+        if (!this.hasReceivedFirstLocation && location) {
+            this.hasReceivedFirstLocation = true;
         }
     }
 
@@ -125,7 +110,37 @@ class LocationRenderer {
     }
 
     /**
-     * Update location visualization
+     * Update location visualization and fly to location
+     * @param {GeoPoint} location - Current location
+     * @param {number|null} heading - Optional heading in degrees
+     */
+    updateLocationVisualizationAndFlyTo(location, heading = null) {
+        if (!this.mapInstance || !location) return;
+
+        // Update location source
+        this.mapInstance.getSource('location').setData({
+            type: 'Point',
+            coordinates: [location.lng, location.lat]
+        });
+
+        // Fly to location (like the old working code)
+        const flyToOptions = {
+            center: [location.lng, location.lat],
+            zoom: config.map.defaultZoom,
+            duration: config.location.animation.duration,
+            essential: config.location.animation.essential
+        };
+
+        // Add bearing (heading) if available
+        if (heading !== null && heading !== undefined) {
+            flyToOptions.bearing = heading;
+        }
+
+        this.mapInstance.flyTo(flyToOptions);
+    }
+
+    /**
+     * Update location visualization (for other purposes)
      * @param {GeoPoint} location - Current location
      * @param {number|null} heading - Optional heading in degrees
      */
