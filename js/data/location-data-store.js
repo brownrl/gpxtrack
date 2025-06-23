@@ -25,6 +25,13 @@ class LocationDataStore {
         this.accuracy = null;
         this.isTracking = false;
         this.lastUpdateTime = 0;
+
+        // Timed update system (like legacy)
+        this.latestGPSLocation = null; // Store latest GPS reading
+        this.lastMapUpdateLocation = null; // Last location sent to map
+
+        // Clear timer
+        this.stopUpdateCycle();
     }
 
     /**
@@ -40,14 +47,17 @@ class LocationDataStore {
      * Handle raw location update from GPS
      * @param {Object} data - Contains position data
      */
-    async handleRawLocationUpdate(data) {
+    handleRawLocationUpdate(data) {
+        if (!this.isTracking) return;
+
         const { position } = data;
 
         // Create GeoPoint from position
         const geoPoint = GeoPoint.fromPosition(position);
 
-        // Update location data
-        this.updateLocation(geoPoint);
+        // Store latest GPS reading (like legacy currentLocation)
+        this.latestGPSLocation = geoPoint;
+        this.accuracy = geoPoint.accuracy;
     }
 
     /**
@@ -55,6 +65,7 @@ class LocationDataStore {
      */
     handleStartTracking() {
         this.isTracking = true;
+        this.startUpdateCycle(); // Start timed updates like legacy
         this.eventBus.emit('location:tracking-started');
     }
 
@@ -63,25 +74,48 @@ class LocationDataStore {
      */
     handleStopTracking() {
         this.isTracking = false;
+        this.stopUpdateCycle(); // Stop timed updates
         this.eventBus.emit('location:tracking-stopped');
     }
 
     /**
-     * Update current location
-     * @param {GeoPoint} geoPoint - New location
+     * Start the timed update cycle (like legacy)
      */
-    updateLocation(geoPoint) {
-        if (!this.isTracking) return;
+    startUpdateCycle() {
+        // Clear any existing timer
+        if (this.updateTimer) {
+            clearInterval(this.updateTimer);
+        }
 
-        // Store previous location
-        this.previousLocation = this.currentLocation;
-        this.currentLocation = geoPoint;
+        // Start new update cycle every 5 seconds like legacy
+        this.updateTimer = setInterval(() => {
+            this.updateMapWithCurrentLocation();
+        }, config.location.tracking.updateInterval);
+    }
+
+    /**
+     * Stop the update cycle
+     */
+    stopUpdateCycle() {
+        if (this.updateTimer) {
+            clearInterval(this.updateTimer);
+            this.updateTimer = null;
+        }
+    }
+
+    /**
+     * Update map with current location (like legacy updateMap)
+     */
+    updateMapWithCurrentLocation() {
+        if (!this.latestGPSLocation) return;
+
+        // Store previous location for heading calculation
+        this.previousLocation = this.lastMapUpdateLocation;
+        this.currentLocation = this.latestGPSLocation;
         this.lastUpdateTime = Date.now();
 
-        // Update accuracy
-        this.accuracy = geoPoint.accuracy;
-
         // Calculate heading if we have previous location and sufficient movement
+        let heading = null;
         if (this.previousLocation) {
             const distance = this.currentLocation.distanceTo(this.previousLocation);
             const minimumDistance = config.location.tracking.minimumDistanceForHeadings;
@@ -91,12 +125,16 @@ class LocationDataStore {
                     this.previousLocation.toLatLng(),
                     this.currentLocation.toLatLng()
                 );
+                heading = this.heading;
             }
         }
 
+        // Store current location as last map update location
+        this.lastMapUpdateLocation = this.currentLocation;
+
         // Add to history (keep last 100 points)
         this.locationHistory.push({
-            location: geoPoint,
+            location: this.currentLocation,
             heading: this.heading,
             timestamp: Date.now()
         });
@@ -105,11 +143,11 @@ class LocationDataStore {
             this.locationHistory.shift();
         }
 
-        // Emit location update event
+        // Emit location update event (like legacy)
         this.eventBus.emit('location:updated', {
             location: this.currentLocation,
             previousLocation: this.previousLocation,
-            heading: this.heading,
+            heading: heading, // Use calculated heading, not stored heading
             accuracy: this.accuracy,
             timestamp: this.lastUpdateTime
         });

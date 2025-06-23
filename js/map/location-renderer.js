@@ -40,7 +40,7 @@ class LocationRenderer {
      * @param {Object} data - Location data
      */
     handleLocationUpdated(data) {
-        const { location } = data;
+        const { location, heading } = data; // Now we trust the heading from data store
 
         // Defensive check for location object
         if (!location) {
@@ -48,24 +48,10 @@ class LocationRenderer {
             return;
         }
 
-        // Defensive check for distanceTo method
-        if (!location.distanceTo || typeof location.distanceTo !== 'function') {
-            console.warn('LocationRenderer: Location object missing distanceTo method:', location);
-            return;
-        }
-
-        // Calculate heading if we have a previous location and we travelled enough
-        let heading = null;
-        if (this.previousLocation &&
-            location.distanceTo(this.previousLocation) >= 4 // minimumDistanceForHeadings
-        ) {
-            heading = this.calculateHeadingFromMovement(this.previousLocation, location);
-        }
-
-        // Update map position with new location and heading (if available) - LEGACY STYLE
+        // Update map position with new location and heading - LEGACY STYLE
         this.updateLocationVisualization(location, heading);
 
-        // Store current location as previous for next heading calculation
+        // Store current location as previous for zoom updates
         this.previousLocation = location;
 
         // Mark that we've received first location for other logic
@@ -196,38 +182,6 @@ class LocationRenderer {
         return this.isLocationVisible;
     }
 
-    /**
-     * Calculate heading from GPS movement (previous location to current location)
-     * @param {GeoPoint} previousLoc - Previous location
-     * @param {GeoPoint} currentLoc - Current location
-     * @returns {number|null} Heading in degrees (0-360) or null if can't calculate
-     */
-    calculateHeadingFromMovement(previousLoc, currentLoc) {
-        if (!previousLoc || !currentLoc) return null;
-
-        // Calculate distance to ensure we have significant movement
-        const distance = currentLoc.distanceTo(previousLoc);
-        const minimumDistance = 4; // meters - same as config.location.tracking.minimumDistanceForHeadings
-
-        if (distance < minimumDistance) {
-            return null; // Not enough movement for reliable heading
-        }
-
-        // Calculate bearing from previous to current location
-        const lon1 = previousLoc.lng * Math.PI / 180;
-        const lat1 = previousLoc.lat * Math.PI / 180;
-        const lon2 = currentLoc.lng * Math.PI / 180;
-        const lat2 = currentLoc.lat * Math.PI / 180;
-
-        const y = Math.sin(lon2 - lon1) * Math.cos(lat2);
-        const x = Math.cos(lat1) * Math.sin(lat2) -
-            Math.sin(lat1) * Math.cos(lat2) * Math.cos(lon2 - lon1);
-
-        let bearing = Math.atan2(y, x) * 180 / Math.PI;
-        bearing = (bearing + 360) % 360; // Normalize to 0-360
-
-        return bearing;
-    }
 }
 
 export default LocationRenderer;
