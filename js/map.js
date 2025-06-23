@@ -190,7 +190,7 @@ const map = {
             'id': 'track-directions',
             'type': 'symbol',
             'source': 'track-directions',
-            'beforeId': 'location', // Ensure directions are above track line
+            'beforeId': 'location', // Ensure directions are above track line and below location
             'layout': {
                 'icon-image': 'direction-arrow',
                 'icon-rotate': ['get', 'bearing'],
@@ -201,8 +201,13 @@ const map = {
         });
 
         // Fit map to track bounds
-        const bounds = new mapboxgl.LngLatBounds();
-        coordinates.forEach(coord => bounds.extend(coord));
+        // Uncomment the following lines if you want to fit the map to the track bounds
+        // We do this to show the entire track on the map ideally so the user can see the full path
+        // and make sure it is the track they want to visualize.
+        // This is usefull when the user has a bunch of tracks with simular names in a folder.
+        // However, we want SPEED!
+        //const bounds = new mapboxgl.LngLatBounds();
+        //coordinates.forEach(coord => bounds.extend(coord));
 
         // Pause location tracker while showing full track
         //this.locationTracker.pause();
@@ -332,7 +337,7 @@ const map = {
 
 
         if (!this.mapInstance.getSource('location')) {
-            this.mapInstance.addSource('location', {
+            this.addSource('location', {
                 type: 'geojson',
                 data: {
                     type: 'Point',
@@ -340,7 +345,7 @@ const map = {
                 }
             });
 
-            this.mapInstance.addLayer({
+            this.addLayer({
                 id: 'location',
                 source: 'location',
                 type: 'circle',
