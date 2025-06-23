@@ -11,6 +11,14 @@ class LocationRenderer {
         this.mapInstance = null;
         this.isLocationVisible = false;
         this.hasReceivedFirstLocation = false; // Track if we've received first location
+        this.currentZoomOffset = 0; // Track current zoom offset
+        
+        // Heading smoothing for battery optimization
+        this.lastHeading = null;
+        this.headingHistory = [];
+        this.lastRotationUpdate = 0;
+        this.rotationUpdateInterval = 3000; // Only update bearing every 3 seconds for battery life
+        this.minimumHeadingChange = 15; // Only rotate if heading changed by at least 15 degrees
 
         this.setupEventListeners();
     }
@@ -24,6 +32,59 @@ class LocationRenderer {
         this.eventBus.on('location:clear-requested', this.clearLocationVisualization, this);
         this.eventBus.on('location:tracking-stopped', this.handleTrackingStopped, this);
         this.eventBus.on('map:zoom-changed', this.handleZoomChanged, this);
+    }
+
+    /**
+     * Smooth heading with averaging for battery optimization
+     * @param {number|null} heading - Raw heading value
+     * @returns {number|null} Smoothed heading or null if no significant change
+     */
+    smoothHeading(heading) {
+        if (heading === null || heading === undefined) {
+            return this.lastHeading; // Keep last heading if no new heading
+        }
+
+        const now = Date.now();
+        
+        // Add to history for averaging
+        this.headingHistory.push({ heading, timestamp: now });
+        
+        // Keep only last 5 headings for averaging
+        if (this.headingHistory.length > 5) {
+            this.headingHistory.shift();
+        }
+
+        // Only update rotation periodically for battery life
+        if (now - this.lastRotationUpdate < this.rotationUpdateInterval) {
+            return this.lastHeading;
+        }
+
+        // Calculate average heading from recent readings
+        let avgHeading = 0;
+        let count = 0;
+        
+        for (const entry of this.headingHistory) {
+            avgHeading += entry.heading;
+            count++;
+        }
+        
+        if (count > 0) {
+            avgHeading = avgHeading / count;
+        }
+
+        // Only update if heading changed significantly
+        if (this.lastHeading !== null) {
+            const headingDiff = Math.abs(avgHeading - this.lastHeading);
+            const normalizedDiff = Math.min(headingDiff, 360 - headingDiff);
+            
+            if (normalizedDiff < this.minimumHeadingChange) {
+                return this.lastHeading; // Not enough change
+            }
+        }
+
+        this.lastHeading = avgHeading;
+        this.lastRotationUpdate = now;
+        return avgHeading;
     }
 
     /**
@@ -54,6 +115,10 @@ class LocationRenderer {
      */
     handleTrackingStopped() {
         this.hasReceivedFirstLocation = false;
+        // Reset heading smoothing state
+        this.lastHeading = null;
+        this.headingHistory = [];
+        this.lastRotationUpdate = 0;
     }
 
     /**
@@ -61,6 +126,9 @@ class LocationRenderer {
      * @param {Object} data - Zoom data
      */
     handleZoomChanged(data) {
+        // Store the zoom offset
+        this.currentZoomOffset = data.zoomOffset || 0;
+        
         // If we have a current location, update the view with new zoom
         this.eventBus.emit('location:refresh-requested');
 
@@ -123,17 +191,20 @@ class LocationRenderer {
             coordinates: [location.lng, location.lat]
         });
 
-        // Fly to location (like the old working code)
+        // Apply heading smoothing for battery optimization
+        const smoothedHeading = this.smoothHeading(heading);
+
+        // Fly to location with current zoom offset applied
         const flyToOptions = {
             center: [location.lng, location.lat],
-            zoom: config.map.defaultZoom,
+            zoom: config.map.defaultZoom + this.currentZoomOffset,
             duration: config.location.animation.duration,
             essential: config.location.animation.essential
         };
 
-        // Add bearing (heading) if available
-        if (heading !== null && heading !== undefined) {
-            flyToOptions.bearing = heading;
+        // Add bearing (smoothed heading) if available
+        if (smoothedHeading !== null && smoothedHeading !== undefined) {
+            flyToOptions.bearing = smoothedHeading;
         }
 
         this.mapInstance.flyTo(flyToOptions);
