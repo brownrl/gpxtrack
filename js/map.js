@@ -170,6 +170,7 @@ const map = {
             'id': 'track',
             'type': 'line',
             'source': 'track',
+            'slot': 'appAddOns',
             'beforeId': 'location', // Ensure track is below location layer
             'paint': {
                 'line-color': this.trackStyle.lineColor,
@@ -190,6 +191,7 @@ const map = {
             'id': 'track-directions',
             'type': 'symbol',
             'source': 'track-directions',
+            'slot': 'appAddOns',
             'beforeId': 'location', // Ensure directions are above track line and below location
             'layout': {
                 'icon-image': 'direction-arrow',
@@ -346,11 +348,11 @@ const map = {
             });
 
             this.addLayer({
-                id: 'location',
-                source: 'location',
-                type: 'circle',
-
-                paint: {
+                'id': 'location',
+                'source': 'location',
+                'type': 'circle',
+                'slot': 'appAddOns',
+                'paint': {
                     'circle-radius': this.locationStyle.circle.radius,
                     'circle-color': this.locationStyle.circle.color,
                     'circle-opacity': this.locationStyle.circle.opacity
