@@ -61,6 +61,14 @@ const map = {
      */
     initMap() {
         this.mapInstance = new mapboxgl.Map(this.defaultConfig);
+        this.addLayer({
+            'id': 'trackAndDirectionsSlot',
+            'type': 'slot',
+        });
+        this.addLayer({
+            'id': 'locationSlot',
+            'type': 'slot',
+        });
         return this.mapInstance;
     },
 
@@ -170,7 +178,7 @@ const map = {
             'id': 'track',
             'type': 'line',
             'source': 'track',
-            'slot': 'appAddOns',
+            'slot': 'trackAndDirectionsSlot',
             'beforeId': 'location', // Ensure track is below location layer
             'paint': {
                 'line-color': this.trackStyle.lineColor,
@@ -191,7 +199,7 @@ const map = {
             'id': 'track-directions',
             'type': 'symbol',
             'source': 'track-directions',
-            'slot': 'appAddOns',
+            'slot': 'trackAndDirectionsSlot',
             'beforeId': 'location', // Ensure directions are above track line and below location
             'layout': {
                 'icon-image': 'direction-arrow',
@@ -351,7 +359,7 @@ const map = {
                 'id': 'location',
                 'source': 'location',
                 'type': 'circle',
-                'slot': 'appAddOns',
+                'slot': 'locationSlot',
                 'paint': {
                     'circle-radius': this.locationStyle.circle.radius,
                     'circle-color': this.locationStyle.circle.color,
