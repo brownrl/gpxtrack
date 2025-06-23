@@ -22,7 +22,7 @@ const config = {
     // Track Visualization
     track: {
         style: {
-            lineColor: '#FF0000', // red
+            lineColor: '#FFFF00',
             lineWeight: 4
         },
         arrows: {
