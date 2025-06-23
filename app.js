@@ -78,9 +78,20 @@ class App {
             return;
         }
 
+
         // Wait for map style to load before initializing other components
         mapInstance.on('style.load', () => {
             try {
+
+                mapInstance.addLayer({
+                    'id': 'trackAndDirectionsSlot',
+                    'type': 'slot',
+                });
+                mapInstance.addLayer({
+                    'id': 'locationSlot',
+                    'type': 'slot',
+                });
+
                 // 2. Initialize core utilities
                 const geoUtils = this.geoUtils();
                 if (geoUtils) geoUtils.init(this);

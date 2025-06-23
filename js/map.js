@@ -61,14 +61,6 @@ const map = {
      */
     initMap() {
         this.mapInstance = new mapboxgl.Map(this.defaultConfig);
-        this.addLayer({
-            'id': 'trackAndDirectionsSlot',
-            'type': 'slot',
-        });
-        this.addLayer({
-            'id': 'locationSlot',
-            'type': 'slot',
-        });
         return this.mapInstance;
     },
 
