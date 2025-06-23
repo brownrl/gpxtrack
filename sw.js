@@ -1,17 +1,31 @@
-const CACHE_NAME = 'gpx-track-v4';
+const CACHE_NAME = 'gpx-track-v5';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
     '/manifest.json',
     '/styles.css',
-    // JavaScript files
-    '/js/location-tracker.js',
-    '/js/map.js',
-    '/js/progress-tracker.js',
-    '/js/track-manager.js',
-    '/js/ui-controls.js',
-    '/js/geo-utils.js',
-    '/js/geo-point.js',
+    // Core JavaScript files
+    '/js/core/app.js',
+    '/js/core/event-bus.js',
+    '/js/core/config.js',
+    // Data layer
+    '/js/data/track-data-store.js',
+    '/js/data/location-data-store.js',
+    '/js/data/geo-utils.js',
+    '/js/data/geo-point.js',
+    // UI layer
+    '/js/ui/ui-state-manager.js',
+    '/js/ui/ui-controls.js',
+    '/js/ui/progress-display.js',
+    // Map layer
+    '/js/map/map-renderer.js',
+    '/js/map/track-renderer.js',
+    '/js/map/location-renderer.js',
+    // Services layer
+    '/js/services/track-manager.js',
+    '/js/services/location-tracker.js',
+    '/js/services/progress-tracker.js',
+    '/js/services/external-services.js',
     // Icons
     '/icons/icon-192x192.png',
     '/icons/icon-512x512.png',

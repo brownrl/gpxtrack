@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Zoom Test - GPX Track Navigator</title>
+    <script>
+        // Test script to verify zoom functionality
+        function testZoomFunctionality() {
+            console.log('Testing zoom button functionality...');
+
+            // Wait for the app to load
+            setTimeout(() => {
+                const zoomButton = document.getElementById('zoom-btn');
+                if (!zoomButton) {
+                    console.error('Zoom button not found');
+                    return;
+                }
+
+                console.log('Found zoom button, testing clicks...');
+
+                // Test multiple clicks
+                for (let i = 0; i < 6; i++) {
+                    setTimeout(() => {
+                        console.log(`Click ${i + 1}: Clicking zoom button`);
+                        zoomButton.click();
+                    }, i * 1000);
+                }
+            }, 2000);
+        }
+
+        // Auto-run test when page loads
+        window.addEventListener('load', testZoomFunctionality);
+    </script>
+</head>
+
+<body>
+    <h1>Zoom Test Page</h1>
+    <p>This page will automatically test the zoom button functionality.</p>
+    <p>Check the browser console for test results.</p>
+    <p><a href="/" target="_blank">Open Main App</a></p>
+</body>
+
+</html>
