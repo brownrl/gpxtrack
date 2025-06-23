@@ -51,7 +51,7 @@ const config = {
             }
         },
         animation: {
-            duration: 1000,
+            duration: 800, // Slightly faster for smoother following
             essential: true
         },
         tracking: {

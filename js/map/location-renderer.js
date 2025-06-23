@@ -42,14 +42,25 @@ class LocationRenderer {
     handleLocationUpdated(data) {
         const { location, heading } = data;
         this.updateLocationVisualization(location, heading);
-        
-        // Automatically fly to first location received
-        if (!this.hasReceivedFirstLocation && location) {
-            this.hasReceivedFirstLocation = true;
-            this.eventBus.emit('map:fly-to-requested', {
+
+        // Always fly to follow the user's location (not just the first time)
+        if (location) {
+            const flyToOptions = {
                 center: [location.lng, location.lat],
                 zoom: config.map.defaultZoom
-            });
+            };
+
+            // Add bearing (heading) if available
+            if (heading !== null && heading !== undefined) {
+                flyToOptions.bearing = heading;
+            }
+
+            this.eventBus.emit('map:fly-to-requested', flyToOptions);
+
+            // Mark that we've received first location for other logic
+            if (!this.hasReceivedFirstLocation) {
+                this.hasReceivedFirstLocation = true;
+            }
         }
     }
 

@@ -38,7 +38,7 @@ class ProgressTracker {
     async handleTrackLoaded() {
         // Request current location and try to calculate progress immediately
         this.eventBus.emit('location:update-requested');
-        
+
         // Also try to get current location directly and calculate progress
         try {
             // We'll emit a request for immediate progress calculation
