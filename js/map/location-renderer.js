@@ -56,6 +56,7 @@ class LocationRenderer {
      */
     handleTrackingStopped() {
         this.hasReceivedFirstLocation = false;
+        this.lastValidHeading = null;
     }
 
     /**
@@ -65,7 +66,7 @@ class LocationRenderer {
     handleZoomChanged(data) {
         // Store the zoom offset
         this.currentZoomOffset = data.zoomOffset || 0;
-        
+
         // If we have a current location, update the view with new zoom
         this.eventBus.emit('location:refresh-requested');
 
@@ -128,6 +129,11 @@ class LocationRenderer {
             coordinates: [location.lng, location.lat]
         });
 
+        // Keep track of last valid heading
+        if (heading !== null && heading !== undefined) {
+            this.lastValidHeading = heading;
+        }
+
         // Fly to location with current zoom offset applied
         const flyToOptions = {
             center: [location.lng, location.lat],
@@ -136,9 +142,10 @@ class LocationRenderer {
             essential: config.location.animation.essential
         };
 
-        // Add bearing (heading) if available - simple, like the old code
-        if (heading !== null && heading !== undefined) {
-            flyToOptions.bearing = heading;
+        // Always use a heading if we have one (new or last valid)
+        const bearingToUse = heading !== null && heading !== undefined ? heading : this.lastValidHeading;
+        if (bearingToUse !== null && bearingToUse !== undefined) {
+            flyToOptions.bearing = bearingToUse;
         }
 
         this.mapInstance.flyTo(flyToOptions);
