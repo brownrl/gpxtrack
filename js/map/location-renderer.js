@@ -13,7 +13,6 @@ class LocationRenderer {
         this.hasReceivedFirstLocation = false; // Track if we've received first location
         this.currentZoomOffset = 0; // Track current zoom offset
         this.previousLocation = null; // Store previous location for heading calculation
-        this.currentHeading = null; // Current calculated heading
 
         this.setupEventListeners();
     }
@@ -41,23 +40,20 @@ class LocationRenderer {
      * @param {Object} data - Location data
      */
     handleLocationUpdated(data) {
-        const { location } = data; // Ignore device heading, we'll calculate our own
+        const { location } = data;
 
-        // Calculate heading from GPS movement
-        const calculatedHeading = this.calculateHeadingFromMovement(this.previousLocation, location);
-
-        // Update heading if we calculated a new one
-        if (calculatedHeading !== null) {
-            this.currentHeading = calculatedHeading;
-            console.log('LocationRenderer: Calculated heading from GPS movement:', this.currentHeading);
-        } else if (this.previousLocation) {
-            console.log('LocationRenderer: No heading calculated (insufficient movement), using last heading:', this.currentHeading);
+        // Calculate heading if we have a previous location and we travelled enough
+        let heading = null;
+        if (this.previousLocation &&
+            location.distanceTo(this.previousLocation) >= 4 // minimumDistanceForHeadings
+        ) {
+            heading = this.calculateHeadingFromMovement(this.previousLocation, location);
         }
 
-        // Update visualization and fly to location
-        this.updateLocationVisualizationAndFlyTo(location, this.currentHeading);
+        // Update map position with new location and heading (if available) - LEGACY STYLE
+        this.updateLocationVisualization(location, heading);
 
-        // Store current location as previous for next calculation
+        // Store current location as previous for next heading calculation
         this.previousLocation = location;
 
         // Mark that we've received first location for other logic
@@ -71,7 +67,7 @@ class LocationRenderer {
      */
     handleTrackingStopped() {
         this.hasReceivedFirstLocation = false;
-        this.lastValidHeading = null;
+        this.previousLocation = null; // Reset for next tracking session
     }
 
     /**
@@ -79,21 +75,13 @@ class LocationRenderer {
      * @param {Object} data - Zoom data
      */
     handleZoomChanged(data) {
-        // Store the zoom offset
+        // Store the zoom offset - LEGACY STYLE
         this.currentZoomOffset = data.zoomOffset || 0;
 
-        // If we have a current location, update the view with new zoom
-        this.eventBus.emit('location:refresh-requested');
-
-        // Also request a map update with current view center and new zoom
-        if (this.mapInstance) {
-            const center = this.mapInstance.getCenter();
-            const newZoom = config.map.defaultZoom + (data.zoomOffset || 0);
-
-            this.eventBus.emit('map:fly-to-requested', {
-                center: [center.lng, center.lat],
-                zoom: newZoom
-            });
+        // Trigger location update if we have a current location (like legacy updateMap call)
+        if (this.previousLocation) {
+            // Re-update with current location and no new heading calculation
+            this.updateLocationVisualization(this.previousLocation, null);
         }
     }
 
@@ -131,57 +119,38 @@ class LocationRenderer {
     }
 
     /**
-     * Update location visualization and fly to location
-     * @param {GeoPoint} location - Current location
+     * Update location visualization on the map - LEGACY STYLE
+     * @param {GeoPoint} geoPoint - Position to update to
      * @param {number|null} heading - Optional heading in degrees
      */
-    updateLocationVisualizationAndFlyTo(location, heading = null) {
-        if (!this.mapInstance || !location) return;
+    updateLocationVisualization(geoPoint, heading) {
+        if (!this.mapInstance || !geoPoint) return;
 
-        // Update location source
-        this.mapInstance.getSource('location').setData({
-            type: 'Point',
-            coordinates: [location.lng, location.lat]
-        });
+        // Update the location source
+        if (this.mapInstance.getSource('location')) {
+            this.mapInstance.getSource('location').setData({
+                type: 'Point',
+                coordinates: [geoPoint.lng, geoPoint.lat]
+            });
 
-        // Keep track of last valid heading
-        if (heading !== null && heading !== undefined) {
-            this.lastValidHeading = heading;
+            if (heading !== null) {
+                this.mapInstance.flyTo({
+                    center: [geoPoint.lng, geoPoint.lat],
+                    zoom: config.map.defaultZoom + this.currentZoomOffset,
+                    bearing: heading,
+                    duration: config.location.animation.duration,
+                    essential: config.location.animation.essential
+                });
+                return;
+            }
+
+            this.mapInstance.flyTo({
+                center: [geoPoint.lng, geoPoint.lat],
+                zoom: config.map.defaultZoom + this.currentZoomOffset,
+                duration: config.location.animation.duration,
+                essential: config.location.animation.essential
+            });
         }
-
-        // Fly to location with current zoom offset applied
-        const flyToOptions = {
-            center: [location.lng, location.lat],
-            zoom: config.map.defaultZoom + this.currentZoomOffset,
-            duration: config.location.animation.duration,
-            essential: config.location.animation.essential
-        };
-
-        // Always use a heading if we have one (new or last valid)
-        const bearingToUse = heading !== null && heading !== undefined ? heading : this.lastValidHeading;
-        if (bearingToUse !== null && bearingToUse !== undefined) {
-            flyToOptions.bearing = bearingToUse;
-        }
-
-        this.mapInstance.flyTo(flyToOptions);
-    }
-
-    /**
-     * Update location visualization (for other purposes)
-     * @param {GeoPoint} location - Current location
-     * @param {number|null} heading - Optional heading in degrees
-     */
-    updateLocationVisualization(location, heading = null) {
-        if (!this.mapInstance || !location) return;
-
-        // Update location source
-        this.mapInstance.getSource('location').setData({
-            type: 'Point',
-            coordinates: [location.lng, location.lat]
-        });
-
-        // Optionally handle heading visualization here
-        // For now, we'll keep it simple with just the location point
     }
 
     /**
@@ -203,7 +172,6 @@ class LocationRenderer {
         this.isLocationVisible = false;
         this.hasReceivedFirstLocation = false; // Reset first location flag
         this.previousLocation = null; // Reset previous location for heading calculation
-        this.currentHeading = null; // Reset heading
 
         this.eventBus.emit('location:visualization-cleared');
     }
