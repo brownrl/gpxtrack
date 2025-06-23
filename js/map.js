@@ -25,7 +25,7 @@ const map = {
     locationStyle: {
         circle: {
             radius: 8,
-            color: '#00FFFF',
+            color: '#0088FF',
             opacity: 1
         },
         animation: {
@@ -73,43 +73,10 @@ const map = {
     },
 
     /**
-     * Set map center
-     * @param {Array} center - [longitude, latitude]
-     * @param {Object} options - Additional options like animation duration
+     * Cycles through zoom levels
+     * This method allows zooming in and out by cycling through predefined zoom levels.
+     * It uses a zoom offset to adjust the zoom level dynamically.
      */
-    setCenter(center, options = {}) {
-        if (this.mapInstance) {
-            this.mapInstance.setCenter(center, options);
-        }
-    },
-
-    /**
-     * Set map zoom level
-     * @param {number} zoom - Zoom level
-     * @param {Object} options - Additional options like animation duration
-     */
-    setZoom(zoom, options = {}) {
-        if (this.mapInstance) {
-            this.mapInstance.setZoom(zoom, options);
-        }
-    },
-
-    /**
-     * Enable/disable map interactions
-     * @param {boolean} enabled - Whether interactions should be enabled
-     */
-    setInteractive(enabled) {
-        if (this.mapInstance) {
-            this.mapInstance.dragPan.enable();
-            this.mapInstance.scrollZoom.enable();
-            this.mapInstance.boxZoom.enable();
-            this.mapInstance.dragRotate.enable();
-            this.mapInstance.keyboard.enable();
-            this.mapInstance.doubleClickZoom.enable();
-            this.mapInstance.touchZoomRotate.enable();
-        }
-    },
-
     zoom() {
         this.zoomOffset += 1;
         if (this.zoomOffset > 2) {
@@ -118,6 +85,9 @@ const map = {
         this.locationTracker.updateMap();
     },
 
+    /**
+     * Reset the zoom level to the default
+     */
     resetZoom() {
         this.zoomOffset = 0;
         this.locationTracker.updateMap();
@@ -200,6 +170,7 @@ const map = {
             'id': 'track',
             'type': 'line',
             'source': 'track',
+            'beforeId': 'location', // Ensure track is below location layer
             'paint': {
                 'line-color': this.trackStyle.lineColor,
                 'line-width': this.trackStyle.lineWeight
@@ -219,6 +190,7 @@ const map = {
             'id': 'track-directions',
             'type': 'symbol',
             'source': 'track-directions',
+            'beforeId': 'location', // Ensure directions are above track line
             'layout': {
                 'icon-image': 'direction-arrow',
                 'icon-rotate': ['get', 'bearing'],
@@ -233,14 +205,14 @@ const map = {
         coordinates.forEach(coord => bounds.extend(coord));
 
         // Pause location tracker while showing full track
-        this.locationTracker.pause();
+        //this.locationTracker.pause();
 
-        this.fitBounds(bounds, { padding: 50 });
+        //this.fitBounds(bounds, { padding: 50 });
 
         // Resume location tracker after 5 seconds
-        setTimeout(() => {
-            this.locationTracker.resume();
-        }, 5000);
+        //setTimeout(() => {
+        //    this.locationTracker.resume();
+        //}, 4000);
     },
 
     /**
@@ -325,7 +297,6 @@ const map = {
      * Update location visualization on the map
      * @param {GeoPoint} geoPoint - Position to update to
      * @param {number|null} heading - Optional heading in degrees
-     * @param {Object} options - Animation options
      */
     updateLocationVisualization(geoPoint, heading) {
 
@@ -356,7 +327,6 @@ const map = {
 
     /**
      * Setup location visualization on the map
-     * @param {Object} options - Visualization options
      */
     setupLocationVisualization() {
 
@@ -374,6 +344,7 @@ const map = {
                 id: 'location',
                 source: 'location',
                 type: 'circle',
+
                 paint: {
                     'circle-radius': this.locationStyle.circle.radius,
                     'circle-color': this.locationStyle.circle.color,

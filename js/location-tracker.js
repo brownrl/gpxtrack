@@ -28,6 +28,7 @@ const locationTracker = {
     updateTimer: null,
     isPaused: false,
     previousLocation: null,
+    acquiringOverlay: null,
 
     /**
      * Initialize with app reference
@@ -37,11 +38,13 @@ const locationTracker = {
         this.map = app.map();
         this.geoUtils = app.geoUtils();
         this.progressTracker = app.progressTracker();
-        
+
         // Setup location visualization
         this.map.setupLocationVisualization();
-        
+
         this.initLocationTracking();
+
+        this.acquiringOverlay = document.getElementById('location-overlay');
     },
 
     /**
@@ -50,7 +53,7 @@ const locationTracker = {
     initLocationTracking() {
         // Start continuous location watching
         this.startLocationWatch();
-        
+
         // Start the update cycle
         this.startUpdateCycle();
     },
@@ -76,10 +79,10 @@ const locationTracker = {
         if (this.updateTimer) {
             clearInterval(this.updateTimer);
         }
-        
+
         // Start new update cycle
         this.updateTimer = setInterval(() => {
-                this.updateMap();
+            this.updateMap();
         }, this.updateInterval);
     },
 
@@ -105,9 +108,11 @@ const locationTracker = {
 
         if (this.isPaused) return;
 
+        this.acquiringOverlay.style.display = 'none';
+
         // Calculate heading if we have a previous location and we travelled enough
         let heading = null;
-        if (this.previousLocation && 
+        if (this.previousLocation &&
             this.currentLocation.distanceTo(this.previousLocation) >= this.minimumDistanceForHeadings
         ) {
             heading = this.calculateHeading(this.previousLocation, this.currentLocation);
