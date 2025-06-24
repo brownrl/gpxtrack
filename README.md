@@ -20,16 +20,27 @@ Browse to https://brownrl.github.io/gpxtrack/ and save it to your home screen. I
 4. Select the GPX file you exported.
 5. Tap the recycle icon to use the last one you opened.
 6. Start moving. I personally prefer to use a bicycle, but it works with walking too.
-7. Distance left will be shown in the top right corner.
-8. Press the magnifying glass to cycle through zoom levels.
-9. Press the lock button to toggle the phone from going to sleep.
-10. Press the globe button to open a drawer with quick links to Google Maps.
+
+## Things to know
+
+- Distance left will be shown in the top right corner.
+- Press the magnifying glass to cycle through zoom levels.
+- Press the lock button to toggle the phone from going to sleep.
+- Press the globe button to open a drawer with quick links to Google Maps.
 
 The globe button will open a drawer with quick links to Google Maps with certain types of locations already searched for you (lodging, restaurants, etc.).
 
 ### Demo Screenshot
+
 ![Demo Screenshot](https://brownrl.github.io/gpxtrack/demo.png)
 
+You also have these screeshots:
+
+- [Screenshot 1](https://brownrl.github.io/gpxtrack/screens/screen-01.png)
+- [Screenshot 2](https://brownrl.github.io/gpxtrack/screens/screen-02.png)
+- [Screenshot 3](https://brownrl.github.io/gpxtrack/screens/screen-03.png)
+- [Screenshot 4](https://brownrl.github.io/gpxtrack/screens/screen-04.png)
+ 
 ## Features
 
 - Minimalist design
