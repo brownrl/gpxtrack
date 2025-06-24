@@ -25,7 +25,11 @@ class ExternalServices {
      * @param {Object} data - Location data
      */
     handleLocationUpdate(data) {
-        this.currentLocation = data.location;
+        if (data && data.location) {
+            this.currentLocation = data.location;
+        } else {
+            console.warn('Received invalid location data');
+        }
     }
 
     /**

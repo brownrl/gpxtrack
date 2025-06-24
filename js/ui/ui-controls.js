@@ -36,6 +36,7 @@ class UIControls {
             } else {
                 this.elements[key] = document.querySelector(selector);
             }
+            console.log(`Initialized element: ${key} -> ${this.elements[key] ? 'Success' : 'Failed'}`);
         });
 
         this.setupButtonEventListeners();
@@ -144,6 +145,7 @@ class UIControls {
      * @param {string} searchType - Type of search to perform
      */
     handleMapSearch(searchType) {
+        console.log(`Emitting ui:map-search-requested with searchType: ${searchType}`);
         this.eventBus.emit('ui:map-search-requested', {
             searchType
         });

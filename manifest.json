@@ -5,7 +5,6 @@
         "standalone",
         "browser"
     ],
-    "start_url": "https://brownrl.github.io/gpxtrack/",
     "short_name": "GPX Progress",
     "orientation": "portrait",
     "lang": "en-US",
