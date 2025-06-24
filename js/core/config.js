@@ -26,8 +26,8 @@ const config = {
             lineWeight: 4
         },
         arrows: {
-            width: 24,
-            height: 24,
+            width: 28,
+            height: 28,
             color: '#FFFFFF',  // Brighter color
             frequency: 4       // Draw arrow every Nth point
         },
@@ -45,8 +45,8 @@ const config = {
     location: {
         style: {
             circle: {
-                radius: 8,
-                color: '#0088FF',
+                radius: 10,
+                color: '#AAAAFF',
                 opacity: 1
             }
         },

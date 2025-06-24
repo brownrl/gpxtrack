@@ -18,7 +18,12 @@ Browse to https://brownrl.github.io/gpxtrack/ and save it to your home screen. I
 2. Open the GPX app on your phone.
 3. Tap the rocket icon in the bottom left corner.
 4. Select the GPX file you exported.
-5. Start moving. I personally prefer to use a bicycle, but it works with walking too.
+5. Tap the recycle icon to use the last one you opened.
+6. Start moving. I personally prefer to use a bicycle, but it works with walking too.
+7. Distance left will be shown in the top right corner.
+8. Press the magnifying glass to cycle through zoom levels.
+9. Press the lock button to toggle the phone from going to sleep.
+10. Press the globe button to open a drawer with quick links to Google Maps.
 
 The globe button will open a drawer with quick links to Google Maps with certain types of locations already searched for you (lodging, restaurants, etc.).
 
@@ -32,6 +37,9 @@ The globe button will open a drawer with quick links to Google Maps with certain
 - Dead simple to use
 - Shows the direction of the track
 - Shows distance left to the end of the track
+- Quick links to Google Maps for nearby locations
+- Quick reload of last used GPX file
+- Keeps the phone awake while tracking or let it sleep
   
 ## Development
 
