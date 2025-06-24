@@ -13,13 +13,6 @@
 <html lang="en">
 
 <head>
-    <!-- Force HTTPS -->
-    <script>
-        if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
-            window.location.href = 'https:' + window.location.href.substring(window.location.protocol.length);
-        }
-    </script>
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script>
@@ -90,7 +83,7 @@
         // Only register service worker for production (not for gpxtrack.test)
         if (window.location.hostname !== 'gpxtrack.test' && 'serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
+                navigator.serviceWorker.register('sw.js')
                     .then(registration => { })
                     .catch(err => { });
             });

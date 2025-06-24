@@ -1,6 +1,51 @@
 {
-    "name": "GPX Track",
-    "short_name": "GPX Track",
+    "version": "1.0.0",
+    "name": "GPX Progress Tracker",
+    "display_override": [
+        "standalone",
+        "browser"
+    ],
+    "start_url": "https://brownrl.github.io/gpxtrack/",
+    "short_name": "GPX Progress",
+    "orientation": "portrait",
+    "lang": "en-US",
+    "dir": "ltr",
+    "shortcuts": [
+        {
+            "name": "Track Progress",
+            "short_name": "Track",
+            "description": "View current progress on your route",
+            "url": "https://brownrl.github.io/gpxtrack/"
+        }
+    ],
+    "protocol_handlers": [
+        {
+            "protocol": "web+gpx",
+            "url": "https://brownrl.github.io/gpxtrack/?gpx=%s"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "screens/screen-01.png",
+            "sizes": "391x852",
+            "type": "image/png"
+        },
+        {
+            "src": "screens/screen-02.png",
+            "sizes": "391x852",
+            "type": "image/png"
+        },
+        {
+            "src": "screens/screen-03.png",
+            "sizes": "391x852",
+            "type": "image/png"
+        },
+        {
+            "src": "screens/screen-04.png",
+            "sizes": "391x852",
+            "type": "image/png"
+        }
+    ],
     "description": "Track progress along GPX routes",
     "display": "standalone",
     "background_color": "#ffffff",
