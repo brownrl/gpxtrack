@@ -43,6 +43,9 @@ class App {
 
         // Initialization promise
         this.initPromise = null;
+
+        // Wake Lock
+        this.wakeLock = null;
     }
 
     /**
@@ -170,6 +173,35 @@ class App {
             if (storedTrack) {
                 // Emit event to show reload button
                 this.eventBus.emit('track:cleared'); // Triggers UI update
+            }
+        });
+
+        // Wake lock toggle
+        this.eventBus.on('ui:wake-lock-toggle', async () => {
+            if (!this.wakeLock) {
+                try {
+                    this.wakeLock = await navigator.wakeLock.request('screen');
+                    this.components.uiControls.elements.wakeBtn.textContent = '🔒';
+                    this.wakeLock.addEventListener('release', () => {
+                        this.components.uiControls.elements.wakeBtn.textContent = '🔓';
+                        this.wakeLock = null;
+                    });
+                } catch (err) {
+                    console.error('Failed to acquire wake lock:', err);
+                }
+            } else {
+                this.wakeLock.release();
+                this.wakeLock = null;
+                this.components.uiControls.elements.wakeBtn.textContent = '🔓';
+            }
+        });
+
+        // Ensure wake lock is released when a track is cleared
+        this.eventBus.on('track:cleared', () => {
+            if (this.wakeLock) {
+                this.wakeLock.release();
+                this.wakeLock = null;
+                this.components.uiControls.elements.wakeBtn.textContent = '🔓';
             }
         });
     }

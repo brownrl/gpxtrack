@@ -90,6 +90,7 @@ const config = {
             clearBtn: '#clear-btn',
             gMapsBtn: '#gmaps-btn',
             locationOverlay: '#location-overlay',
+            wakeBtn: '#wake-btn',
 
             // By class
             buttonsContainer: '.ui-controls-container',

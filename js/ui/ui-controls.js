@@ -105,6 +105,14 @@ class UIControls {
                 });
             }
         });
+
+        // Wake lock button
+        if (this.elements.wakeBtn) {
+            this.elements.wakeBtn.addEventListener('click', () => {
+                this.eventBus.emit('ui:wake-lock-toggle');
+                this.emitUserInteraction();
+            });
+        }
     }
 
     /**

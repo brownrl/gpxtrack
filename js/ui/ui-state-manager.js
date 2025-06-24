@@ -22,7 +22,8 @@ class UIStateManager {
             buttonsVisible: {
                 clear: false,
                 zoom: false,
-                reload: false
+                reload: false,
+                wake: false
             },
             drawerExpanded: false,
             progressVisible: false,
@@ -58,7 +59,8 @@ class UIStateManager {
                 ...this.state.buttonsVisible,
                 clear: true,
                 zoom: true,
-                reload: false
+                reload: false,
+                wake: true
             },
             progressVisible: true
         });
@@ -74,7 +76,8 @@ class UIStateManager {
             buttonsVisible: {
                 clear: false,
                 zoom: false,
-                reload: hasStoredTrack
+                reload: hasStoredTrack,
+                wake: false
             },
             progressVisible: false
         });
