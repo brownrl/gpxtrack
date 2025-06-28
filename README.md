@@ -1,6 +1,6 @@
-# gpxtrack
+# GPX Navigator
 
-A simple PWA to be installed on your phone, helping you follow a GPX track and see your position on it.
+A simple and minimal PWA to be installed on your phone, helping you follow a GPX track and see your position on it. Developed with a heavy focus on battery efficiency and ease of use.
 
 ## Installation
 
@@ -8,17 +8,16 @@ A simple PWA to be installed on your phone, helping you follow a GPX track and s
 2. Host it somewhere and browse to it with your phone. (Herd share?)
 3. Save it to your home screen.
 
-### OR...
+### Online version
 
 Browse to https://brownrl.github.io/gpxtrack/ and save it to your home screen. It's a PWA, so it will save as an 'app' on your phone.
 
 ## Usage
 
 1. Export a GPX file from your favorite app to your files.
-2. Open the GPX app on your phone.
+2. Open this app on your phone.
 3. Tap the rocket icon in the bottom left corner.
 4. Select the GPX file you exported.
-5. Tap the recycle icon to use the last one you opened.
 6. Start moving. I personally prefer to use a bicycle, but it works with walking too.
 
 ## Things to know
@@ -26,9 +25,8 @@ Browse to https://brownrl.github.io/gpxtrack/ and save it to your home screen. I
 - Distance left will be shown in the top right corner.
 - Press the magnifying glass to cycle through zoom levels.
 - Press the lock button to toggle the phone from going to sleep.
-- Press the globe button to open a drawer with quick links to Google Maps.
-
-The globe button will open a drawer with quick links to Google Maps with certain types of locations already searched for you (lodging, restaurants, etc.).
+- Press the X button to clear the GPX route and start over.
+- Press the reload button to quickly reload the last used GPX file.
 
 ### Demo Screenshot
 

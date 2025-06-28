@@ -1,18 +1,19 @@
 {
     "version": "1.0.0",
-    "name": "GPX Progress Tracker",
+    "name": "GPX Navigator",
     "display_override": [
         "standalone",
         "browser"
     ],
-    "short_name": "GPX Progress",
+    "start_url": "https://brownrl.github.io/gpxtrack/",
+    "short_name": "GPX Navigator",
     "orientation": "portrait",
     "lang": "en-US",
     "dir": "ltr",
     "shortcuts": [
         {
-            "name": "Track Progress",
-            "short_name": "Track",
+            "name": "GPX Navigator",
+            "short_name": "Navigator",
             "description": "View current progress on your route",
             "url": "https://brownrl.github.io/gpxtrack/"
         }
@@ -45,7 +46,7 @@
             "type": "image/png"
         }
     ],
-    "description": "Track progress along GPX routes",
+    "description": "Navigate your GPX routes with ease. GPX Navigator allows you to view your current progress on any GPX route, making it perfect for outdoor adventures.",
     "display": "standalone",
     "background_color": "#ffffff",
     "theme_color": "#000000",

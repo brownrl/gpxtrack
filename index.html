@@ -1,14 +1,13 @@
 <!DOCTYPE html>
 <!--
-    GPX Progress Tracker
-    Version 1.0.0
+    GPX Navigator
+    Version 1.0.1
     
     A web application for viewing and navigating GPX tracks with real-time GPS tracking.
     Features:
     - Load and display GPX tracks
     - Real-time GPS location tracking
     - Track progress display
-    - Google Maps integration for nearby services
     - Responsive UI with auto-hiding controls
 -->
 <html lang="en">
@@ -39,11 +38,12 @@
         }
     </script>
     <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
-    <title>GPX Progress Tracker</title>
+    <title>GPX Navigator</title>
 
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#000000">
-    <meta name="description" content="A PWA for following GPX tracks and tracking location">
+    <meta name="description"
+        content="GPX Navigator allows you to view your current progress on any GPX route, making it perfect for outdoor adventures.">
 
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
@@ -99,7 +99,8 @@
     <div id="map"></div>
     <div id="progress-display">---</div>
     <div class="ui-controls-container">
-        <div class="gmaps-drawer">
+
+        <!-- <div class="gmaps-drawer">
             <div class="drawer-buttons">
                 <button id="open-maps-btn" class="drawer-button">📍</button>
                 <button id="open-lodging-btn" class="drawer-button">🛏️</button>
@@ -109,7 +110,7 @@
                 <button id="open-hospital-btn" class="drawer-button">❤️‍🩹</button>
             </div>
             <button id="gmaps-btn" class="gmaps-button">🌎</button>
-        </div>
+        </div> -->
 
         <!-- buttons -->
         <button id="file-picker-btn" class="file-picker-button">🚀</button>
